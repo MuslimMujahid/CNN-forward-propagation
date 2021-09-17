@@ -24,3 +24,18 @@ class Dense(Layer):
         net = np.dot(X, self.W)
         output = self.activation(net)
         return output
+
+class Detector(Layer):
+    def __init__(self, units: int, activation: str, name: str) -> None:
+        super().__init__(activation, name)
+        self.units = units
+        # self.W = None
+
+    def __call__(self, X: np.ndarray) -> np.ndarray:
+        return self.detect(X)
+
+    def detect(self, X: np.ndarray) -> np.ndarray:
+        relu = ACTIVATION_FUNCTIONS["relu"]
+        output = relu(X)
+        return output
+

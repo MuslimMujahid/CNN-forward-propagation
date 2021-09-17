@@ -24,3 +24,16 @@ class Dense(Layer):
         net = np.dot(X, self.W)
         output = self.activation(net)
         return output
+
+
+class Conv2D(Layer):
+    def __init__(self, name: str, size: list(int), filter: np.ndarray, padding: int, stride: int):
+        super().__init__("", name)
+        self.size = size
+        self.filter = filter
+        self.padding = padding
+        self.stride = stride
+    
+    def convolution(self, image: np.ndarray):
+        (filter_x, filter_y, filter_z) = self.filter.shape
+        image_dim, in_dim, _ = image.shape

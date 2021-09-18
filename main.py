@@ -14,7 +14,8 @@ from LEMBUT import util
 # y = model(X)
 # print(y)
 
-img = util.imgToMat("C:\\Users\\Muslim\\Pictures\\suit4.jpg")
+img = util.imgToMat("C:\\Users\\Muslim\\Pictures\\suit4.jpg", size=(224, 224))
+print(img.shape)
 kernel = np.array([
     [[1, 7, 1], [1, 3, 1], [3, 4, 1]],
     [[3, 0, 11], [1, 1, 1], [1, 3, 7]],

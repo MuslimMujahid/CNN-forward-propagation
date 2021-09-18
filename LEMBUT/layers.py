@@ -29,12 +29,17 @@ class Dense(Layer):
 class Conv(Layer):
     def __init__(self, name: str, size: tuple, filter: np.ndarray, padding: int, stride: int, bias: int = 0, debug=False):
         super().__init__("linear", name)
+        (filter_z, filter_y, filter_x) = filter.shape
+        assert filter_z == 3, "Filter is not 3-channeled. Filter shoudl have shape (channel, height, width)"
         self.size = size
         self.filter = filter
         self.padding = padding
         self.stride = stride
         self.bias = bias
         self.debug = debug
+    
+    def __call__(self, input_array: np.ndarray) -> np.ndarray:
+        return self.Conv3D(input_array, self.filter)
     
     def Conv2D(self, image: np.ndarray):
         (filter_x, filter_y) = self.filter.shape
@@ -81,8 +86,6 @@ class Conv(Layer):
             # print(image[selected_filter_channel])
             out_mat[selected_filter_channel] = self.Conv2D(image[selected_filter_channel])
         return out_mat
-        
-
 
     
 

@@ -30,6 +30,6 @@ filter = np.array([
 
 print(in_mat.shape)
 
-conv_layer = Conv("Test", in_mat.shape, filter, 0, 1)
+conv_layer = Conv("Test", in_mat.shape, filter, 0, 2)
 out = conv_layer.Conv3D(in_mat, filter)
 print(out)

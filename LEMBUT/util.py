@@ -1,10 +1,13 @@
 import numpy as np
-from PIL import Image
+import cv2
 
 
-def imgToMat(filepath: str):
-    f = Image.open(filepath, "r")
-    img = np.array(f)
+def imgToMat(filepath: str, size=None):
+    img = cv2.imread(filepath, cv2.IMREAD_UNCHANGED)
+
+    if (size):
+        img = cv2.resize(img, size, interpolation=cv2.INTER_AREA)
+
     return img
 
 

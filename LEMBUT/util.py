@@ -8,13 +8,41 @@ def imgToMat(filepath: str, size=None):
     if (size):
         img = cv2.resize(img, size, interpolation=cv2.INTER_AREA)
 
-    return img
+    height, width, channel = img.shape
+    img_inverted = np.zeros([channel, height, width], dtype=int)
+
+    for i in range(channel):
+        for j in range(height):
+            for k in range(width):
+                img_inverted[i, j, k] = img[j, k, i]
+
+    return img_inverted
+
+
+def showImage(img: np.ndarray) -> None:
+
+    channel, height, width = img.shape
+    img_inverted = np.zeros([height, width, channel], dtype=int)
+
+    for i in range(channel):
+        for j in range(height):
+            for k in range(width):
+                img_inverted[j, k, i] = img[i, j, k]
+
+    cv2.imshow("image", img_inverted.astype(np.uint8))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+def showImage2D(img: np.ndarray) -> None:
+    cv2.imshow("image", img.astype(np.uint8))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 def conv2D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias: int) -> np.ndarray:
     # padding
     X = np.pad(X, padding, mode='constant')
-
     x_height, x_width = X.shape
     k_height, k_width = kernel.shape
 
@@ -32,9 +60,9 @@ def conv2D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias:
 
 def conv3D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias: int) -> np.ndarray:
     return np.add(
-        conv2D(X[:, :, 2], kernel[:, :, 2], padding, stride, bias),
+        conv2D(X[2, :, :], kernel[2, :, :], padding, stride, bias),
         np.add(
-            conv2D(X[:, :, 0], kernel[:, :, 0], padding, stride, bias),
-            conv2D(X[:, :, 1], kernel[:, :, 1], padding, stride, bias)))
+            conv2D(X[0, :, :], kernel[0, :, :], padding, stride, bias),
+            conv2D(X[1, :, :], kernel[1, :, :], padding, stride, bias)))
 
     return feature_map

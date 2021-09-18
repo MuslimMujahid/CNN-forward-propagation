@@ -1,6 +1,6 @@
 import numpy as np
 from .functions import ACTIVATION_FUNCTIONS
-from .util import conv3D
+# from .util import conv3D
 from .util import conv2D
 
 
@@ -29,50 +29,41 @@ class Dense(Layer):
 
 
 class Conv(Layer):
-    def __init__(self, name: str, filter: np.ndarray, padding: int, stride: tuple, bias: int = 0):
+    def __init__(self, name: str, filters: np.ndarray, kernel_size: tuple, padding: int, stride: tuple, bias: int = 0):
         super().__init__("linear", name)
-        self.filter = filter
+        self.filters = filters
+        self.kernel_size = kernel_size
+        # self.kernel = np.zeros(
+        #     [filters, kernel_size[0], kernel_size[1]], dtype=int)
+        self.kernel = np.random.rand(filters, kernel_size[0], kernel_size[1])
         self.padding = padding
         self.stride = stride
         self.bias = bias
 
-
-class Conv3D(Conv):
-    def __init__(self, name: str, filter: np.ndarray, padding: int, stride: int, bias: int = 0, debug=False):
-        super().__init__(name, filter, padding, stride, bias)
-        self.debug = debug
-
-    def __call__(self, input_array: np.ndarray) -> np.ndarray:
-        return self.forward(input_array)
-
-    def forward(self, X: np.ndarray):
-        return conv3D(X, self.filter, self.padding, self.stride, self.bias)
-
-
 class Conv2D(Conv):
-    def __init__(self, name: str, filter: np.ndarray, padding: int, stride: tuple = (1, 1), bias: int = 0):
-        super().__init__(name, filter, padding, stride, bias)
+    def __init__(self, name: str, filters: int, kernel_size: tuple = (3, 3), padding: int = 0, stride: tuple = (1, 1), bias: int = 0):
+        super().__init__(name, filters, kernel_size, padding, stride, bias)
 
     def __call__(self, X: np.ndarray) -> np.ndarray:
         return self.forward(X)
 
     def forward(self, X: np.ndarray) -> np.ndarray:
-        return conv2D(X, self.filter, self.padding, self.stride, self.bias)
+        # Create buffer for feature maps
+        x_channel, x_height, x_width = X.shape
+        k_channel, k_height, k_width = self.kernel.shape
+        f_height, f_width = ((x_height-k_height+2*self.padding) //
+                             self.stride[0] + 1, (x_width-k_width+2*self.padding)//self.stride[1] + 1)
+        feature_maps = np.zeros([self.filters, f_height, f_width], dtype=int)
 
+        # Do convolution for every input channel to each filter channel
+        for i in range(self.filters):
+            for j in range(x_channel):
+                feature_maps[j, :, :] = np.add(feature_maps[j, :, :], conv2D(
+                    X[j, :, :], self.kernel[i, :, :], self.padding, self.stride, self.bias))
 
-class Detector(Layer):
-    def __init__(self, units: int, activation: str, name: str) -> None:
-        super().__init__(activation, name)
-        self.units = units
-        # self.W = None
-
-    def __call__(self, X: np.ndarray) -> np.ndarray:
-        return self.detect(X)
-
-    def detect(self, X: np.ndarray) -> np.ndarray:
-        relu = ACTIVATION_FUNCTIONS["relu"]
-        output = relu(X)
-        return output
+        # Detector
+        feature_maps = ACTIVATION_FUNCTIONS["relu"](feature_maps)
+        return feature_maps
 
 
 class Pooling(Layer):

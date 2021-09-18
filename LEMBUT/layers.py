@@ -42,6 +42,11 @@ class Conv(Layer):
         return self.Conv3D(input_array, self.filter)
     
     def Conv2D(self, image: np.ndarray):
+        local_image = []
+        if self.padding == 0:
+            local_image = image
+        else:
+            local_image = np.pad(image, (self.padding, self.padding), 'constant', constant_values=(0,0))
         (filter_x, filter_y) = self.filter.shape
         image_dim, in_dim = image.shape
         if self.debug:
@@ -49,45 +54,98 @@ class Conv(Layer):
             print("image shape ", image.shape)
             print("image dim", image_dim)
             print("in dim", in_dim)
+        if self.padding == 0:
+            out_dimension = int((in_dim - filter_x)/self.stride) + 1
+            out_mat = np.zeros((out_dimension, out_dimension))
+            if self.debug:
+                print(out_mat)
 
-        out_dimension = int((in_dim - filter_x)/self.stride) + 1
-        out_mat = np.zeros((out_dimension, out_dimension))
-        if self.debug:
-            print(out_mat)
-
-        for curr_f in range(filter_x):
-            in_y = out_y = 0
-            while in_y + filter_y <= in_dim:
-                in_x = out_x = 0
-                if self.debug: print("y", in_y, out_y)
-                while in_x + filter_x <= in_dim:
-                    if self.debug:
-                        print("============conv==========")
-                        print("x", in_x, out_x)
-                        print(image[in_y:in_y+filter_y, in_x:in_x+filter_x])
-                        print(self.filter)
-                    out_mat[out_x, out_y] = np.sum(self.filter * image[in_y:in_y+filter_y, in_x:in_x+filter_x]) + self.bias
-                    in_x += self.stride
-                    if self.debug: print(out_mat[out_x, out_y])
-                    out_x += 1
-                in_y += self.stride
-                out_y += 1
-        
-        return out_mat
+            for curr_f in range(filter_x):
+                in_y = out_y = 0
+                while in_y + filter_y <= in_dim:
+                    in_x = out_x = 0
+                    if self.debug: print("y", in_y, out_y)
+                    while in_x + filter_x <= in_dim:
+                        if self.debug:
+                            print("============conv==========")
+                            print("x", in_x, out_x)
+                            print(image[in_y:in_y+filter_y, in_x:in_x+filter_x])
+                            print(self.filter)
+                        out_mat[out_x, out_y] = np.sum(self.filter * image[in_y:in_y+filter_y, in_x:in_x+filter_x])
+                        in_x += self.stride
+                        if self.debug: print(out_mat[out_x, out_y])
+                        out_x += 1
+                    in_y += self.stride
+                    out_y += 1
+            
+            return out_mat
+        else:
+            out_dimension = int((in_dim - filter_x + 2*self.padding)/self.stride) + 1
+            out_mat = np.zeros((out_dimension, out_dimension))
+            if self.debug:
+                print(out_mat)
+            in_dim += 2*self.padding
+            for curr_f in range(filter_x):
+                in_y = out_y = 0
+                while in_y + filter_y <= in_dim:
+                    in_x = out_x = 0
+                    if self.debug: print("y", in_y, out_y)
+                    while in_x + filter_x <= in_dim:
+                        if self.debug:
+                            print("============conv==========")
+                            print("x", in_x, out_x)
+                            print(local_image[in_y:in_y+filter_y, in_x:in_x+filter_x])
+                            print(self.filter)
+                        out_mat[out_x, out_y] = np.sum(self.filter * local_image[in_y:in_y+filter_y, in_x:in_x+filter_x])
+                        in_x += self.stride
+                        if self.debug: print(out_mat[out_x, out_y])
+                        out_x += 1
+                    in_y += self.stride
+                    out_y += 1
+            
+            return out_mat
 
     def Conv3D(self, image:np.ndarray, filter: np.ndarray):
         (filter_z_dim, filter_y_dim, filter_x_dim) = filter.shape
         (image_z_dim, image_y_dim, image_x_dim) = image.shape
         assert filter_z_dim == 3, "Filter must be 3-channeled"
-        out_dimension = int((image_y_dim - filter_y_dim)/self.stride) + 1
-        out_mat = np.zeros((filter_z_dim, out_dimension, out_dimension))
-        for selected_filter_channel in range(0,filter_z_dim):
-            self.filter = filter[selected_filter_channel]
-            # print(image[selected_filter_channel])
-            out_mat[selected_filter_channel] = self.Conv2D(image[selected_filter_channel])
-        return out_mat
+        if self.padding == 0:
+            out_dimension = int((image_y_dim - filter_y_dim)/self.stride) + 1
+            out_mat = np.zeros((filter_z_dim, out_dimension, out_dimension))
+            for selected_filter_channel in range(0,filter_z_dim):
+                self.filter = filter[selected_filter_channel]
+                # print(image[selected_filter_channel])
+                out_mat[selected_filter_channel] = self.Conv2D(image[selected_filter_channel])
+            res = np.zeros((out_dimension, out_dimension))
+            for i in range(out_dimension):
+                for j in range(out_dimension):
+                    for k in range(filter_z_dim):
+                        res[i,j] += out_mat[k, i, j]
+                    res[i,j] += self.bias
+            return res
+        else:
+            # padded_mat = self.zero_pad(image, self.padding)
+            out_dimension = int((image_y_dim - filter_y_dim + 2*self.padding)/self.stride) + 1
+            out_mat = np.zeros((filter_z_dim, out_dimension, out_dimension))
+            for selected_filter_channel in range(0,filter_z_dim):
+                self.filter = filter[selected_filter_channel]
+                # print(image[selected_filter_channel])
+                out_mat[selected_filter_channel] = self.Conv2D(image[selected_filter_channel])
+            res = np.zeros((out_dimension, out_dimension))
+            for i in range(out_dimension):
+                for j in range(out_dimension):
+                    for k in range(filter_z_dim):
+                        res[i,j] += out_mat[k, i, j]
+                    res[i,j] += self.bias
+            return res
 
-    
+    def zero_pad(self, image: np.ndarray, padding: int):
+        (image_z, image_y, image_x) = image.shape
+        out_mat = [[],[],[]]
+        for i in range(0,image_z):
+            print(image[i])
+            out_mat[i] = np.pad(image[i], (padding, padding), 'constant', constant_values=(0,0))
+        return np.array(out_mat)
 
 class Detector(Layer):
     def __init__(self, units: int, activation: str, name: str) -> None:

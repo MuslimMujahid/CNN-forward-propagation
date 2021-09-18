@@ -1,18 +1,17 @@
 import numpy as np
 from .functions import ACTIVATION_FUNCTIONS
-# from .util import conv3D
 from .util import conv2D
 
 
 class Layer:
-    def __init__(self, activation: str, name: str) -> None:
-        self.activation = ACTIVATION_FUNCTIONS[activation]
+    def __init__(self, name: str) -> None:
         self.name = name
 
 
 class Dense(Layer):
-    def __init__(self, units: int, activation: str, name: str) -> None:
-        super().__init__(activation, name)
+    def __init__(self, units: int, activation: str, name: str = "dense") -> None:
+        super().__init__(name)
+        self.activation = ACTIVATION_FUNCTIONS[activation]
         self.units = units
         self.W = None
 
@@ -21,7 +20,8 @@ class Dense(Layer):
 
     def forward(self, X: np.ndarray) -> np.ndarray:
         if (not self.W):
-            self.W = np.random.rand(X.shape[1], self.units)
+            self.W = np.random.rand(
+                X.shape[0 if len(X.shape) == 1 else 1], self.units)
 
         net = np.dot(X, self.W)
         output = self.activation(net)
@@ -29,8 +29,9 @@ class Dense(Layer):
 
 
 class Conv(Layer):
-    def __init__(self, name: str, filters: np.ndarray, kernel_size: tuple, padding: int, stride: tuple, bias: int = 0):
-        super().__init__("linear", name)
+    def __init__(self, filters: np.ndarray, name: str, kernel_size: tuple, activation: str, padding: int, stride: tuple, bias: int = 0):
+        super().__init__(name)
+        self.activation = ACTIVATION_FUNCTIONS[activation]
         self.filters = filters
         self.kernel_size = kernel_size
         # self.kernel = np.zeros(
@@ -40,9 +41,10 @@ class Conv(Layer):
         self.stride = stride
         self.bias = bias
 
+
 class Conv2D(Conv):
-    def __init__(self, name: str, filters: int, kernel_size: tuple = (3, 3), padding: int = 0, stride: tuple = (1, 1), bias: int = 0):
-        super().__init__(name, filters, kernel_size, padding, stride, bias)
+    def __init__(self, filters: int, name: str = "conv2d", kernel_size: tuple = (3, 3), activation: str = "relu", padding: int = 0, stride: tuple = (1, 1), bias: int = 0):
+        super().__init__(filters, name, kernel_size, activation, padding, stride, bias)
 
     def __call__(self, X: np.ndarray) -> np.ndarray:
         return self.forward(X)
@@ -67,9 +69,8 @@ class Conv2D(Conv):
 
 
 class Pooling(Layer):
-    def __init__(self, units: int, activation: str, name: str, size=2, stride=2) -> None:
-        super().__init__(activation, name)
-        self.units = units
+    def __init__(self, name: str = "max_pooling", size=2, stride=2) -> None:
+        super().__init__(name)
         self.size = size
         self.stride = stride
 
@@ -77,15 +78,24 @@ class Pooling(Layer):
         return self.pool(X)
 
     def pool(self, X: np.ndarray) -> np.ndarray:
-        output = np.zeros((np.uint16((X.shape[0]-self.size+1)/self.stride+1), np.uint16(
-            (X.shape[1]-self.size+1)/self.stride+1), X.shape[-1]))
-        for map_num in range(X.shape[-1]):
-            r2 = 0
-            for r in np.arange(0, X.shape[0]-self.size+1, self.stride):
-                c2 = 0
-                for c in np.arange(0, X.shape[1]-self.size+1, self.stride):
-                    output[r2, c2, map_num] = np.max(
-                        [X[r:r+self.size,  c:c+self.size]])
-                    c2 = c2 + 1
-                r2 = r2 + 1
+        x_channel, x_height, x_width = X.shape
+        output = np.zeros([x_channel, (x_height-self.size) //
+                          self.stride+1, (x_width-self.size)//self.stride+1])
+        _, o_height, o_width = output.shape
+        for i in range(x_channel):
+            for j in range(o_height):
+                for k in range(o_width):
+                    output[i, j, k] = np.max(
+                        X[i, j*self.stride:j*self.stride+self.size, k*self.stride:k*self.stride+self.size])
         return output
+
+
+class Flatten(Layer):
+    def __init__(self, name: str = "flatten") -> None:
+        super().__init__(name)
+
+    def __call__(self, X: np.ndarray) -> np.ndarray:
+        return self.forward(X)
+
+    def forward(self, X: np.ndarray) -> np.ndarray:
+        return X.flatten('F')

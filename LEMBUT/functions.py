@@ -10,9 +10,9 @@ def relu(x):
     return np.maximum(x, 0)
 
 def softmax(x):
-    exp = np.exp(x)
-    return exp / np.reshape(np.sum(exp, axis=1), (exp.shape[0], 1))
-  
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=0)
+
 ACTIVATION_FUNCTIONS = {
   "linear": linear,
   "sigmoid": sigmoid,

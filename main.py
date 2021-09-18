@@ -13,12 +13,11 @@ from LEMBUT import util
 # X = np.random.rand(3, 2)
 # y = model(X)
 # print(y)
-
-img = util.imgToMat("C:\\Users\\Muslim\\Pictures\\suit4.jpg", size=(224, 224))
-print(img.shape)
+img = util.imgToMat(
+    "C:\\Users\\Muslim\\Pictures\\1115214.jpg", size=(224, 224))
 kernel = np.array([
-    [[1, 7, 1], [1, 3, 1], [3, 4, 1]],
-    [[3, 0, 11], [1, 1, 1], [1, 3, 7]],
+    [[9, 7, 1], [1, 3, 1], [3, 4, 1]],
+    [[3, 0, 11], [17, 1, 1], [1, 3, 7]],
     [[1, 4, 4], [9, 1, 1], [1, 0, 0]]
 ])
 print(util.conv(img, kernel))

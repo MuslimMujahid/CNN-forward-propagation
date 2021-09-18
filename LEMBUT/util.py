@@ -3,7 +3,7 @@ import cv2
 
 
 def imgToMat(filepath: str, size=None):
-    img = cv2.imread(filepath, cv2.IMREAD_UNCHANGED)
+    img = cv2.imread(filepath, cv2.IMREAD_COLOR)
 
     if (size):
         img = cv2.resize(img, size, interpolation=cv2.INTER_AREA)
@@ -11,19 +11,30 @@ def imgToMat(filepath: str, size=None):
     return img
 
 
-def conv(X: np.ndarray, kernel: np.ndarray) -> np.ndarray:
-    x_height, x_width, x_channel = X.shape
-    k_height, k_width, k_channel = kernel.shape
+def conv2D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias: int) -> np.ndarray:
+    # padding
+    X = np.pad(X, padding, mode='constant')
 
-    f_height, f_width = (x_height - k_height + 1, x_width - k_width + 1)
+    x_height, x_width = X.shape
+    k_height, k_width = kernel.shape
+
+    f_height, f_width = ((x_height-k_height) //
+                         stride[0] + 1, (x_width-k_width)//stride[1] + 1)
     feature_map = np.zeros([f_height, f_width], dtype=int)
 
     for i in range(f_height):
         for j in range(f_width):
-            result = 0
-            for k in range(x_channel):
-                result += np.sum(np.multiply(X[i:i+k_width,
-                                 j:j+k_width, k], kernel[:, :, k]))
-            feature_map[i, j] = result
+            feature_map[i, j] = np.sum(np.multiply(X[i*stride[1]:i*stride[1]+k_width,
+                                                     j*stride[0]:j*stride[0]+k_width], kernel[:, :]))
+
+    return feature_map
+
+
+def conv3D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias: int) -> np.ndarray:
+    return np.add(
+        conv2D(X[:, :, 2], kernel[:, :, 2], padding, stride, bias),
+        np.add(
+            conv2D(X[:, :, 0], kernel[:, :, 0], padding, stride, bias),
+            conv2D(X[:, :, 1], kernel[:, :, 1], padding, stride, bias)))
 
     return feature_map

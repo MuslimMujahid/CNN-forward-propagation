@@ -24,14 +24,82 @@ class Sequential:
         return output
 
     def summary(self):
-
-        if not self.has_run:
-            print("Do predict first before get summary!")
-            return
-
         table = []
         heads = ["Layer (type)", "Output Shape", "Params"]
-        for layer in self.layers:
-            table.append([f'{layer.name} ({layer.__name__()})',
-                          layer.output_shape, layer.param])
+        prev_output_shape = None
+        total_param = 0
+        for idx, layer in enumerate(self.layers):
+            name = layer.__name__()
+            output_Shape = None
+            param = None
+
+            if (idx == 0):
+                if layer.input_shape == None:
+                    continue
+                if name == "Dense":
+                    output_shape = f'(None, {layer.units})'
+                    param = layer.input_shape * layer.units
+                    prev_output_shape = (layer.units, )
+                elif name == "Conv2D":
+                    k_channel, k_height, k_width = layer.kernel.shape
+                    i_height, i_width, i_channel = layer.input_shape
+                    o_height = (i_height-k_height+2 *
+                                layer.padding)//layer.stride[0]+1
+                    o_width = (i_width-k_width+2 *
+                               layer.padding)//layer.stride[1]+1
+                    output_shape = f'(None, {o_height}, {o_width}, {layer.filters})'
+                    param = layer.filters * \
+                        (k_height * k_width * i_channel + 1)
+                    prev_output_shape = (layer.filters, o_height, o_width)
+                elif name == "Pooling":
+                    i_height, i_width, i_channel = input_shape
+                    o_height = (i_height-layer.size)//layer.stride+1
+                    o_width = (i_width-layer.size)//layer.stride+1
+                    output_shape = f'(None, {i_channel}, {o_height}, {o_width})'
+                    prev_output_shape = (i_channel, o_height, o_width)
+                    param = 0
+                elif name == "Flatten":
+                    i_height, i_width, i_channel = input_shape
+                    o_width = i_channel * i_height * i_width
+                    output_shape = f'(None, {o_width})'
+                    prev_output_shape = (o_width, )
+                    param = 0
+            else:
+                if name == "Dense":
+                    output_shape = f'(None, {layer.units})'
+                    param = (prev_output_shape[0]+1) * layer.units
+                    prev_output_shape = (layer.units, )
+                elif name == "Conv2D":
+                    k_channel, k_height, k_width = layer.kernel.shape
+                    i_channel, i_height, i_width = prev_output_shape
+                    o_height = (i_height-k_height+2 *
+                                layer.padding)//layer.stride[0]+1
+                    o_width = (i_width-k_width+2 *
+                               layer.padding)//layer.stride[1]+1
+                    output_shape = f'(None, {o_height}, {o_width}, {layer.filters})'
+                    prev_output_shape = (layer.filters, o_height, o_width)
+                    param = layer.filters * \
+                        (k_height * k_width * i_channel + 1)
+                elif name == "Pooling":
+                    i_channel, i_height, i_width = prev_output_shape
+                    o_height = (i_height-layer.size)//layer.stride+1
+                    o_width = (i_width-layer.size)//layer.stride+1
+                    output_shape = f'(None, {o_height}, {o_width}, {i_channel})'
+                    prev_output_shape = (i_channel, o_height, o_width)
+                    param = 0
+                elif name == "Flatten":
+                    i_channel, i_height, i_width = prev_output_shape
+                    o_width = i_channel * i_height * i_width
+                    output_shape = f'(None, {o_width})'
+                    prev_output_shape = (o_width, )
+                    param = 0
+
+            table.append([f'{layer.name} ({name})', output_shape, param])
+            total_param += param
+
+        print()
         print(tabulate(table, headers=heads, tablefmt="github"))
+        print()
+        print("Total params:", total_param)
+        print("Trainable params:", total_param)
+        print("Non-Trainable params:", 0)

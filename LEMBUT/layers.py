@@ -4,13 +4,14 @@ from .util import conv2D
 
 
 class Layer:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, input_shape: tuple) -> None:
         self.name = name
+        self.input_shape = input_shape
 
 
 class Dense(Layer):
-    def __init__(self, units: int, activation: str, name: str = "dense") -> None:
-        super().__init__(name)
+    def __init__(self, units: int, activation: str, name: str = "dense", input_shape: tuple = None) -> None:
+        super().__init__(name, input_shape)
         self.activation = ACTIVATION_FUNCTIONS[activation]
         self.units = units
         self.W = None
@@ -29,16 +30,12 @@ class Dense(Layer):
         net = np.dot(X, self.W)
         output = self.activation(net)
 
-        # For summary
-        self.output_shape = f'(None, {output.shape[0]})'
-        self.param = (input_size+1)*self.units
-
         return output
 
 
 class Conv(Layer):
-    def __init__(self, filters: np.ndarray, name: str, kernel_size: tuple, activation: str, padding: int, stride: tuple, bias: int = 0):
-        super().__init__(name)
+    def __init__(self, filters: np.ndarray, name: str, kernel_size: tuple, activation: str, padding: int, stride: tuple, bias: int = 0, input_shape: tuple = None):
+        super().__init__(name, input_shape)
         self.activation = ACTIVATION_FUNCTIONS[activation]
         self.filters = filters
         self.kernel_size = kernel_size
@@ -51,8 +48,9 @@ class Conv(Layer):
 
 
 class Conv2D(Conv):
-    def __init__(self, filters: int, name: str = "conv2d", kernel_size: tuple = (3, 3), activation: str = "relu", padding: int = 0, stride: tuple = (1, 1), bias: int = 0):
-        super().__init__(filters, name, kernel_size, activation, padding, stride, bias)
+    def __init__(self, filters: int, name: str = "conv2d", kernel_size: tuple = (3, 3), activation: str = "relu", padding: int = 0, stride: tuple = (1, 1), bias: int = 0, input_shape: tuple = None):
+        super().__init__(filters, name, kernel_size,
+                         activation, padding, stride, bias, input_shape)
 
     def __name__(self):
         return "Conv2D"
@@ -77,17 +75,12 @@ class Conv2D(Conv):
         # Detector
         feature_maps = ACTIVATION_FUNCTIONS["relu"](feature_maps)
 
-        # For summary
-        self.output_shape = f'(None, {feature_maps.shape[1]}, {feature_maps.shape[2]}, {feature_maps.shape[0]})'
-        self.param = self.filters * \
-            (self.kernel_size[0]*self.kernel_size[1]*x_channel+1)
-
         return feature_maps
 
 
 class Pooling(Layer):
-    def __init__(self, name=None, size=2, stride=2, mode="max") -> None:
-        super().__init__(name if name is not None else (mode + "_pooling"))
+    def __init__(self, name=None, size=2, stride=2, mode="max", input_shape: tuple = None) -> None:
+        super().__init__(name if name is not None else (mode + "_pooling"), input_shape)
         self.size = size
         self.stride = stride
         self.mode = mode
@@ -110,16 +103,12 @@ class Pooling(Layer):
                     output[i, j, k] = pool_function(
                         X[i, j*self.stride:j*self.stride+self.size, k*self.stride:k*self.stride+self.size])
 
-        # For summary
-        self.output_shape = f'(None, {output.shape[1]}, {output.shape[2]}, {output.shape[0]})'
-        self.param = 0
-
         return output
 
 
 class Flatten(Layer):
-    def __init__(self, name: str = "flatten") -> None:
-        super().__init__(name)
+    def __init__(self, name: str = "flatten", input_shape: tuple = None) -> None:
+        super().__init__(name, input_shape)
 
     def __name__(self):
         return "Flatten"
@@ -128,10 +117,4 @@ class Flatten(Layer):
         return self.forward(X)
 
     def forward(self, X: np.ndarray) -> np.ndarray:
-        flatten = X.flatten('F')
-
-        # For summary
-        self.output_shape = f'(None, {flatten.shape[0]})'
-        self.param = 0
-
-        return flatten
+        return X.flatten('F')

@@ -24,7 +24,7 @@ class Dense(Layer):
 
     def forward(self, X: np.ndarray) -> np.ndarray:
         input_size = X.shape[0 if len(X.shape) == 1 else 1]
-        if (not self.W):
+        if self.W is None:
             self.W = np.random.rand(input_size, self.units)
 
         net = np.dot(X, self.W)

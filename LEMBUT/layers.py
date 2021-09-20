@@ -73,7 +73,7 @@ class Conv2D(Conv):
                     X[j, :, :], self.kernel[i, :, :], self.padding, self.stride, self.bias))
 
         # Detector
-        feature_maps = ACTIVATION_FUNCTIONS["relu"](feature_maps)
+        feature_maps = ACTIVATION_FUNCTIONS[self.activation](feature_maps)
 
         return feature_maps
 

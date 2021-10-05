@@ -39,9 +39,8 @@ class Conv(Layer):
         self.activation = ACTIVATION_FUNCTIONS[activation]
         self.filters = filters
         self.kernel_size = kernel_size
-        # self.kernel = np.zeros(
-        #     [filters, kernel_size[0], kernel_size[1]], dtype=int)
-        self.kernel = np.random.rand(filters, kernel_size[0], kernel_size[1])
+        # initialize random kernels
+        self.kernel = np.random.rand(kernel_size[0], kernel_size[1], filters)
         self.padding = padding
         self.stride = stride
         self.bias = bias
@@ -60,17 +59,17 @@ class Conv2D(Conv):
 
     def forward(self, X: np.ndarray) -> np.ndarray:
         # Create buffer for feature maps
-        x_channel, x_height, x_width = X.shape
-        k_channel, k_height, k_width = self.kernel.shape
-        f_height, f_width = ((x_height-k_height+2*self.padding) //
-                             self.stride[0] + 1, (x_width-k_width+2*self.padding)//self.stride[1] + 1)
-        feature_maps = np.zeros([self.filters, f_height, f_width], dtype=int)
+        x_height, x_width, x_channel = X.shape
+        k_height, k_width, k_channel = self.kernel.shape
+        f_height = (x_height-k_height+2*self.padding) // self.stride[0] + 1
+        f_width = (x_width-k_width+2*self.padding) // self.stride[1] + 1
+        feature_maps = np.zeros([f_height, f_width, self.filters], dtype=int)
 
         # Do convolution for every input channel to each filter channel
         for i in range(self.filters):
             for j in range(x_channel):
-                feature_maps[j, :, :] = np.add(feature_maps[j, :, :], conv2D(
-                    X[j, :, :], self.kernel[i, :, :], self.padding, self.stride, self.bias))
+                feature_maps[:, :, j] = np.add(feature_maps[:, :, j], conv2D(
+                    X[:, :, j], self.kernel[:, :, i], self.padding, self.stride, self.bias))
 
         # Detector
         feature_maps = self.activation(feature_maps)
@@ -93,15 +92,15 @@ class Pooling(Layer):
 
     def pool(self, X: np.ndarray) -> np.ndarray:
         pool_function = np.mean if self.mode == "avg" else np.max
-        x_channel, x_height, x_width = X.shape
-        output = np.zeros([x_channel, (x_height-self.size) //
-                          self.stride+1, (x_width-self.size)//self.stride+1])
-        _, o_height, o_width = output.shape
+        x_height, x_width, x_channel = X.shape
+        output = np.zeros([(x_height-self.size) //
+                          self.stride+1, (x_width-self.size)//self.stride+1, x_channel])
+        o_height, o_width, _ = output.shape
         for i in range(x_channel):
             for j in range(o_height):
                 for k in range(o_width):
-                    output[i, j, k] = pool_function(
-                        X[i, j*self.stride:j*self.stride+self.size, k*self.stride:k*self.stride+self.size])
+                    output[j, k, i] = pool_function(
+                        X[j*self.stride:j*self.stride+self.size, k*self.stride:k*self.stride+self.size, i])
 
         return output
 

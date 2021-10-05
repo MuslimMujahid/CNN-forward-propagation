@@ -25,7 +25,7 @@ model.add(layers.Dense(name="dense_3", units=10, activation="softmax"))
 
 # Predict
 for i in range(10):
-    img = np.array([trainX[i]])
+    img = trainX[i][..., None]
     result = model(img)
     print(result)
 

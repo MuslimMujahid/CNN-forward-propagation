@@ -2,39 +2,16 @@ import numpy as np
 import cv2
 
 
-def imgToMat(filepath: str, size=None):
+def loadImage(filepath: str, size=None):
     img = cv2.imread(filepath, cv2.IMREAD_COLOR)
 
     if (size):
         img = cv2.resize(img, size, interpolation=cv2.INTER_AREA)
 
-    height, width, channel = img.shape
-    img_inverted = np.zeros([channel, height, width], dtype=int)
-
-    for i in range(channel):
-        for j in range(height):
-            for k in range(width):
-                img_inverted[i, j, k] = img[j, k, i]
-
-    return img_inverted
+    return img
 
 
 def showImage(img: np.ndarray) -> None:
-
-    channel, height, width = img.shape
-    img_inverted = np.zeros([height, width, channel], dtype=int)
-
-    for i in range(channel):
-        for j in range(height):
-            for k in range(width):
-                img_inverted[j, k, i] = img[i, j, k]
-
-    cv2.imshow("image", img_inverted.astype(np.uint8))
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
-def showImage2D(img: np.ndarray) -> None:
     cv2.imshow("image", img.astype(np.uint8))
     cv2.waitKey(0)
     cv2.destroyAllWindows()

@@ -39,7 +39,7 @@ class Dense(Layer):
         self.output = ACTIVATION_FUNCTIONS[self.activation](self.net)
         return self.output
 
-    def backward(self, X: np.ndarray, y: np.ndarray = None, next_layer: Layer = None) -> np.ndarray:
+    def backward(self, X: np.ndarray, y: np.ndarray = None, next_layer: Layer = None):
         dE_dnet = None
 
         if y is not None:
@@ -105,19 +105,24 @@ class Conv2D(Conv):
 
         return feature_maps
 
-    def backprop(self, gradient: np.ndarray):
-        # do backpropagation which is full convolution with transposed kernel
-        kernel_transpose = []
-        grad_chan, grad_height, grad_width = gradient.shape
-        out = np.zeros()
-        (kernel_z, kernel_y, kernel_x) = self.kernel_size
-        for i in range(kernel_z):
-            kernel_transpose[i] = np.transpose(self.kernel[i])
+    def backward(self, X: np.ndarray, y: np.ndarray = None, next_layer: Layer = None):
+        # legend
+        ## x : input
+        ## y : output
+        ## next_layer : layer in front of current layer
+
+        # backprop for gradient on kernel
+        ## matmul between current input with incoming output
+        kernel_back = np.matmul(X, y)
+
+        # backprop for gradient on bias
+        bias_back = y
+
+        # backprop for gradient on input (for previous layer)
+        # full convolution of output gradient with rotated 180 degrees of kernel
         
-        for i in range(self.filters):
-            for j in range(grad_chan):
-                out[j, :, :] = conv2D
-        pass
+        
+        
 
 
 class Pooling(Layer):

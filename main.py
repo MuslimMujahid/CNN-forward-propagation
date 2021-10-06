@@ -4,6 +4,8 @@ from LEMBUT.model import Sequential
 from LEMBUT import layers
 import cv2
 from LEMBUT import util
+from keras.datasets import mnist
+from LEMBUT.util import *
 # from keras.datasets import mnist
 
 
@@ -35,6 +37,18 @@ model.add(layers.Dense(name="dense_2", units=2, activation="sigmoid",
 #     print(result)
 
 # Summary
+model.summary()
+
+# save(model,'test.pkl')
+# new_model = load('test.pkl')
+# for i in range(10):
+#     img = trainX[i][..., None]
+#     result = new_model(img)
+#     print(result)
+
+# # Summary
+# new_model.summary()
+
 # model.summary()
 
 # Train

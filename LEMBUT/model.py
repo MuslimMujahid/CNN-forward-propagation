@@ -30,7 +30,7 @@ class Sequential:
 
             # Forward propagation
             yHat = self.predict(X)
-
+            print(yHat)
             # Back propagation
             dE_dnet, dE_dw = self.layers[-1].backward(
                 yHat, y)

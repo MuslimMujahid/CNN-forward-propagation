@@ -17,7 +17,7 @@ def showImage(img: np.ndarray) -> None:
     cv2.destroyAllWindows()
 
 
-def conv2D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias: int) -> np.ndarray:
+def conv2D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias) -> np.ndarray:
     # padding
     X = np.pad(X, padding, mode='constant')
     x_height, x_width = X.shape
@@ -29,13 +29,13 @@ def conv2D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias:
 
     for i in range(f_height):
         for j in range(f_width):
-            feature_map[i, j] = np.sum(np.multiply(X[i*stride[1]:i*stride[1]+k_width,
-                                                     j*stride[0]:j*stride[0]+k_width], kernel[:, :]))
+            feature_map[i, j] = np.sum(np.multiply(X[i*stride[1] : i*stride[1]+k_width,
+                                                     j*stride[0] : j*stride[0]+k_width], kernel[:, :]))
 
     return feature_map
 
 
-def conv3D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias: int) -> np.ndarray:
+def conv3D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias) -> np.ndarray:
     return np.add(
         conv2D(X[2, :, :], kernel[2, :, :], padding, stride, bias),
         np.add(

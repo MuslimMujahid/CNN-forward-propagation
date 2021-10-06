@@ -72,9 +72,15 @@ class Conv(Layer):
             [kernel_size[0], kernel_size[1], filters], dtype=float)
         self.padding = padding
         self.stride = stride
-        self.bias = bias
+        # self.bias = bias
+        self.bias = np.zeros((filters))
 
 
+"""Convolutional 2D Layer
+filter : describes how many filter
+
+
+"""
 class Conv2D(Conv):
     def __init__(self, filters: int, name: str = "conv2d", kernel_size: tuple = (3, 3), activation: str = "relu", padding: int = 0, stride: tuple = (1, 1), bias: int = 0, input_shape: tuple = None):
         super().__init__(filters, name, kernel_size,
@@ -97,8 +103,8 @@ class Conv2D(Conv):
         # Do convolution for every input channel to each filter channel
         for i in range(self.filters):
             for j in range(x_channel):
-                feature_maps[:, :, j] = np.add(feature_maps[:, :, j], conv2D(
-                    X[:, :, j], self.kernel[:, :, i], self.padding, self.stride, self.bias))
+                feature_maps[:, :, j] = np.add(feature_maps[:, :, j], conv2D(X[:, :, j], self.kernel[:, :, i], self.padding, self.stride, self.bias))
+            feature_maps[:,:,i] += self.bias[i]
 
         # Detector
         feature_maps = self.activation(feature_maps)
@@ -107,19 +113,77 @@ class Conv2D(Conv):
 
     def backward(self, X: np.ndarray, y: np.ndarray = None, next_layer: Layer = None):
         # legend
-        ## x : input
-        ## y : output
+        ## x : input : X
+        ## y : output : not used
         ## next_layer : layer in front of current layer
+        # print("Backprop")
+        dW, dB, dE = None, None, None
+        
+        pad = self.padding
+        stride = self.stride
+        in_width, in_height, in_channel = X.shape
+        stride_x, stride_y = self.stride
+        k_height, k_width = self.kernel_size
+        # print(X.shape)
+        # print(y.shape)
+        #loop through all filters
+        # return np.matmul(X, y)
+
+        dfilt = np.zeros(self.kernel.shape)
+        dbias = np.zeros((self.filters))
+        dout = np.zeros(X.shape)
+        # print("dout shape", dout.shape)
+
+        # print(X.shape)
+        for f in range(0, self.filters):
+            # print("filter " + str(f+1))
+            # curr_input_by_filter = X[:,:,f]
+            # curr_output_by_filter = y[:,:,f]
+            # print(curr_input_by_filter.shape)
+            # print(curr_output_by_filter.shape)
+            current_y = output_y = 0
+            while current_y + k_height <= in_height:
+                current_x = output_x = 0
+                while current_x + k_width <= in_width:
+                    # print(X[current_x: current_x+f+k_height, current_y: current_y+f+k_width, f])
+                    # print(current_x, current_y, output_x, output_y, f)
+                    mult_mat = X[current_x:current_x+k_height, current_y:current_y+k_width, 0] * y[output_x, output_y, f]
+                    # print(mult_mat)
+                    dfilt[:,:,f] += mult_mat
+
+                    mult_mat = self.kernel[:,:,f] * y[output_x, output_y, f]
+                    # print(mult_mat)
+                    # print(mult_mat.shape)
+                    # print(dout.shape)
+                    # print(dout[current_x:current_x+k_height, current_y:current_y+k_width, f])
+                    # print(dout[current_x:current_x+k_height, current_y:current_y+k_width, f].shape)
+                    dout[current_x:current_x+k_height, current_y:current_y+k_width, 0] += mult_mat
+
+                    current_x += stride_x
+                    output_x += 1
+                current_y += stride_y
+                output_y += 1
+            dbias[f] = np.sum(y[:,:,f])
+        # print(dfilt.shape)
+        # print(dfilt)
+        
+
+            
 
         # backprop for gradient on kernel
         ## matmul between current input with incoming output
-        kernel_back = np.matmul(X, y)
+        # kernel_back = np.matmul(X, y)
 
         # backprop for gradient on bias
-        bias_back = y
+        # bias_back = y
 
         # backprop for gradient on input (for previous layer)
         # full convolution of output gradient with rotated 180 degrees of kernel
+        # input_back = None
+
+        # return input_back, kernel_back
+        self.bias += dbias
+        return dout, dfilt
         
         
         

@@ -10,11 +10,12 @@ class Layer:
 
 
 class Dense(Layer):
-    def __init__(self, units: int, activation: str, name: str = "dense", input_shape: tuple = None) -> None:
+    def __init__(self, units: int, activation: str = "linear", name: str = "dense", input_shape: tuple = None, initial_weight: np.ndarray = None, bias=None) -> None:
         super().__init__(name, input_shape)
-        self.activation = ACTIVATION_FUNCTIONS[activation]
+        self.activation = activation
         self.units = units
-        self.W = None
+        self.W = initial_weight
+        self.bias = bias
 
     def __name__(self):
         return "Dense"
@@ -23,14 +24,41 @@ class Dense(Layer):
         return self.forward(X)
 
     def forward(self, X: np.ndarray) -> np.ndarray:
-        input_size = X.shape[0 if len(X.shape) == 1 else 1]
+        if (self.bias is not None):
+            self.input = np.append(X, np.reshape(
+                [self.bias for _ in range(X.shape[0])], (X.shape[0], 1)), axis=1)
+        else:
+            self.input = X
+
+        input_size = self.input.shape[0 if len(self.input.shape) == 1 else 1]
+
         if self.W is None:
-            self.W = np.random.rand(input_size, self.units)
+            self.W = np.zeros([input_size, self.units], dtype=float)
 
-        net = np.dot(X, self.W)
-        output = self.activation(net)
+        self.net = np.dot(self.input, self.W)
+        self.output = ACTIVATION_FUNCTIONS[self.activation](self.net)
+        return self.output
 
-        return output
+    def backward(self, X: np.ndarray, y: np.ndarray = None, next_layer: Layer = None) -> np.ndarray:
+        dE_dnet = None
+
+        if y is not None:
+            dE_do = -(y - X)
+            do_dnet = ACTIVATION_FUNCTIONS['d' + self.activation](X)
+            dE_dnet = dE_do * do_dnet
+        else:
+            dE_do = np.dot(X, next_layer.W.T)
+            do_dnet = ACTIVATION_FUNCTIONS['d' +
+                                           self.activation](next_layer.input)
+            dE_dnet = dE_do * do_dnet
+
+            if (self.bias is not None):
+                dE_dnet = dE_dnet[:, :-1]
+
+        # print(self.input.T.shape, dE_dnet.shape)
+        dE_dw = np.dot(self.input.T, dE_dnet)
+
+        return dE_dnet, dE_dw
 
 
 class Conv(Layer):
@@ -39,9 +67,9 @@ class Conv(Layer):
         self.activation = ACTIVATION_FUNCTIONS[activation]
         self.filters = filters
         self.kernel_size = kernel_size
-        # self.kernel = np.zeros(
-        #     [filters, kernel_size[0], kernel_size[1]], dtype=int)
-        self.kernel = np.random.rand(filters, kernel_size[0], kernel_size[1])
+        # initialize random kernels
+        self.kernel = np.zeros(
+            [kernel_size[0], kernel_size[1], filters], dtype=float)
         self.padding = padding
         self.stride = stride
         self.bias = bias
@@ -60,17 +88,17 @@ class Conv2D(Conv):
 
     def forward(self, X: np.ndarray) -> np.ndarray:
         # Create buffer for feature maps
-        x_channel, x_height, x_width = X.shape
-        k_channel, k_height, k_width = self.kernel.shape
-        f_height, f_width = ((x_height-k_height+2*self.padding) //
-                             self.stride[0] + 1, (x_width-k_width+2*self.padding)//self.stride[1] + 1)
-        feature_maps = np.zeros([self.filters, f_height, f_width], dtype=int)
+        x_height, x_width, x_channel = X.shape
+        k_height, k_width, k_channel = self.kernel.shape
+        f_height = (x_height-k_height+2*self.padding) // self.stride[0] + 1
+        f_width = (x_width-k_width+2*self.padding) // self.stride[1] + 1
+        feature_maps = np.zeros([f_height, f_width, self.filters], dtype=float)
 
         # Do convolution for every input channel to each filter channel
         for i in range(self.filters):
             for j in range(x_channel):
-                feature_maps[j, :, :] = np.add(feature_maps[j, :, :], conv2D(
-                    X[j, :, :], self.kernel[i, :, :], self.padding, self.stride, self.bias))
+                feature_maps[:, :, j] = np.add(feature_maps[:, :, j], conv2D(
+                    X[:, :, j], self.kernel[:, :, i], self.padding, self.stride, self.bias))
 
         # Detector
         feature_maps = self.activation(feature_maps)
@@ -107,15 +135,15 @@ class Pooling(Layer):
 
     def pool(self, X: np.ndarray) -> np.ndarray:
         pool_function = np.mean if self.mode == "avg" else np.max
-        x_channel, x_height, x_width = X.shape
-        output = np.zeros([x_channel, (x_height-self.size) //
-                          self.stride+1, (x_width-self.size)//self.stride+1])
-        _, o_height, o_width = output.shape
+        x_height, x_width, x_channel = X.shape
+        output = np.zeros([(x_height-self.size) //
+                          self.stride+1, (x_width-self.size)//self.stride+1, x_channel])
+        o_height, o_width, _ = output.shape
         for i in range(x_channel):
             for j in range(o_height):
                 for k in range(o_width):
-                    output[i, j, k] = pool_function(
-                        X[i, j*self.stride:j*self.stride+self.size, k*self.stride:k*self.stride+self.size])
+                    output[j, k, i] = pool_function(
+                        X[j*self.stride:j*self.stride+self.size, k*self.stride:k*self.stride+self.size, i])
 
         return output
 

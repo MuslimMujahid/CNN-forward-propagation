@@ -23,6 +23,29 @@ class Sequential:
 
         return output
 
+    def fit(self, X: np.ndarray, y: np.ndarray, epochs=1, learning_rate=0.5) -> np.ndarray:
+        n_layers = len(self.layers)
+        for i in range(epochs):
+            lst_dE_dw = []
+
+            # Forward propagation
+            yHat = self.predict(X)
+
+            # Back propagation
+            dE_dnet, dE_dw = self.layers[-1].backward(
+                yHat, y)
+            lst_dE_dw.insert(0, dE_dw)
+            if (n_layers > 1):
+                for i in range(n_layers-2, -1, -1):
+                    dE_dnet, dE_dw = self.layers[i].backward(
+                        dE_dnet, next_layer=self.layers[i+1])
+                    lst_dE_dw.insert(0, dE_dw)
+
+            # Update weights
+            for idx, dE_dw in enumerate(lst_dE_dw):
+                self.layers[idx].W -= (learning_rate * dE_dw)
+                # print(self.layers[idx].W)
+
     def summary(self):
         table = []
         heads = ["Layer (type)", "Output Shape", "Params"]
@@ -38,7 +61,7 @@ class Sequential:
                     continue
                 if name == "Dense":
                     output_shape = f'(None, {layer.units})'
-                    param = layer.input_shape * layer.units
+                    param = layer.input_shape[0] * layer.units
                     prev_output_shape = (layer.units, )
                 elif name == "Conv2D":
                     k_height, k_width, k_channel = layer.kernel.shape

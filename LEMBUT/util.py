@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-
+import pickle
 
 def loadImage(filepath: str, size=None):
     img = cv2.imread(filepath, cv2.IMREAD_COLOR)
@@ -43,3 +43,10 @@ def conv3D(X: np.ndarray, kernel: np.ndarray, padding: int, stride: tuple, bias:
             conv2D(X[1, :, :], kernel[1, :, :], padding, stride, bias)))
 
     return feature_map
+
+
+def save(model, filename):
+    pickle.dump(model, open(filename, 'wb'))
+
+def load(filename):
+    return pickle.load(open(filename, 'rb'))

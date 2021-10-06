@@ -5,6 +5,7 @@ from LEMBUT import layers
 import cv2
 from LEMBUT import util
 from keras.datasets import mnist
+from LEMBUT.util import *
 
 
 (trainX, trainY), (testX, testY) = mnist.load_data()
@@ -31,3 +32,13 @@ for i in range(10):
 
 # Summary
 model.summary()
+
+# save(model,'test.pkl')
+# new_model = load('test.pkl')
+# for i in range(10):
+#     img = trainX[i][..., None]
+#     result = new_model(img)
+#     print(result)
+
+# # Summary
+# new_model.summary()

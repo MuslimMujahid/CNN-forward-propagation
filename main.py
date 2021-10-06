@@ -4,12 +4,9 @@ from LEMBUT.model import Sequential
 from LEMBUT import layers
 import cv2
 from LEMBUT import util
-<<<<<<< HEAD
 from keras.datasets import mnist
 from LEMBUT.util import *
-=======
 # from keras.datasets import mnist
->>>>>>> 634322b3b2ea01d37a71c56034e3d23924dc156b
 
 
 # (trainX, trainY), (testX, testY) = mnist.load_data()

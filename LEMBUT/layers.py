@@ -77,6 +77,20 @@ class Conv2D(Conv):
 
         return feature_maps
 
+    def backprop(self, gradient: np.ndarray):
+        # do backpropagation which is full convolution with transposed kernel
+        kernel_transpose = []
+        grad_chan, grad_height, grad_width = gradient.shape
+        out = np.zeros()
+        (kernel_z, kernel_y, kernel_x) = self.kernel_size
+        for i in range(kernel_z):
+            kernel_transpose[i] = np.transpose(self.kernel[i])
+        
+        for i in range(self.filters):
+            for j in range(grad_chan):
+                out[j, :, :] = conv2D
+        pass
+
 
 class Pooling(Layer):
     def __init__(self, name=None, size=2, stride=2, mode="max", input_shape: tuple = None) -> None:

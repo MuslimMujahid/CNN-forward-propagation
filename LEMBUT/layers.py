@@ -76,7 +76,7 @@ class Conv(Layer):
         self.bias = np.zeros((filters))
 
 
-"""Convolutional 2D Layer
+""" Convolutional 2D Layer
 filter : describes how many filter
 
 
@@ -116,73 +116,48 @@ class Conv2D(Conv):
         ## x : input : X
         ## y : output : not used
         ## next_layer : layer in front of current layer
-        # print("Backprop")
-        dW, dB, dE = None, None, None
-        
         pad = self.padding
         stride = self.stride
-        in_width, in_height, in_channel = X.shape
+        in_width, in_height, _ = X.shape
         stride_x, stride_y = self.stride
         k_height, k_width = self.kernel_size
-        # print(X.shape)
-        # print(y.shape)
-        #loop through all filters
-        # return np.matmul(X, y)
 
+        # gradient loss of the filters
         dfilt = np.zeros(self.kernel.shape)
+        # gradient loss of the biases
         dbias = np.zeros((self.filters))
+        # gradient loss of with respect to input (to be propagated to previous layer)
         dout = np.zeros(X.shape)
         # print("dout shape", dout.shape)
 
-        # print(X.shape)
+        # loops through all filters
         for f in range(0, self.filters):
-            # print("filter " + str(f+1))
-            # curr_input_by_filter = X[:,:,f]
-            # curr_output_by_filter = y[:,:,f]
-            # print(curr_input_by_filter.shape)
-            # print(curr_output_by_filter.shape)
             current_y = output_y = 0
             while current_y + k_height <= in_height:
                 current_x = output_x = 0
                 while current_x + k_width <= in_width:
-                    # print(X[current_x: current_x+f+k_height, current_y: current_y+f+k_width, f])
-                    # print(current_x, current_y, output_x, output_y, f)
+                    # getting the receptive field of the input, multiplied with constant from output gradient
                     mult_mat = X[current_x:current_x+k_height, current_y:current_y+k_width, 0] * y[output_x, output_y, f]
-                    # print(mult_mat)
+                    # filter weight updated using the result from above
                     dfilt[:,:,f] += mult_mat
 
+                    # multiply the current filter's kernel with constant from output gradient
                     mult_mat = self.kernel[:,:,f] * y[output_x, output_y, f]
-                    # print(mult_mat)
-                    # print(mult_mat.shape)
-                    # print(dout.shape)
-                    # print(dout[current_x:current_x+k_height, current_y:current_y+k_width, f])
-                    # print(dout[current_x:current_x+k_height, current_y:current_y+k_width, f].shape)
+                    # updating the loss gradient with respect to input
+                    # this code kinda sus, need recheck
                     dout[current_x:current_x+k_height, current_y:current_y+k_width, 0] += mult_mat
 
+                    # increment iterator
                     current_x += stride_x
                     output_x += 1
                 current_y += stride_y
                 output_y += 1
+            # combine gradient biases based from the output gradient (kinda sus, recheck also)
             dbias[f] = np.sum(y[:,:,f])
-        # print(dfilt.shape)
-        # print(dfilt)
-        
-
-            
-
-        # backprop for gradient on kernel
-        ## matmul between current input with incoming output
-        # kernel_back = np.matmul(X, y)
-
-        # backprop for gradient on bias
-        # bias_back = y
-
-        # backprop for gradient on input (for previous layer)
-        # full convolution of output gradient with rotated 180 degrees of kernel
-        # input_back = None
-
-        # return input_back, kernel_back
+        # update bias for current layer
         self.bias += dbias
+        # return output gradient with respect to input, and filter's loss gradient
+        # returned for information to previous layer's backpropagation
         return dout, dfilt
         
         

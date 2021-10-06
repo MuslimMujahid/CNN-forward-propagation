@@ -10,11 +10,12 @@ class Layer:
 
 
 class Dense(Layer):
-    def __init__(self, units: int, activation: str, name: str = "dense", input_shape: tuple = None) -> None:
+    def __init__(self, units: int, activation: str = "linear", name: str = "dense", input_shape: tuple = None, initial_weight: np.ndarray = None, bias=None) -> None:
         super().__init__(name, input_shape)
-        self.activation = ACTIVATION_FUNCTIONS[activation]
+        self.activation = activation
         self.units = units
-        self.W = None
+        self.W = initial_weight
+        self.bias = bias
 
     def __name__(self):
         return "Dense"
@@ -23,14 +24,41 @@ class Dense(Layer):
         return self.forward(X)
 
     def forward(self, X: np.ndarray) -> np.ndarray:
-        input_size = X.shape[0 if len(X.shape) == 1 else 1]
+        if (self.bias is not None):
+            self.input = np.append(X, np.reshape(
+                [self.bias for _ in range(X.shape[0])], (X.shape[0], 1)), axis=1)
+        else:
+            self.input = X
+
+        input_size = self.input.shape[0 if len(self.input.shape) == 1 else 1]
+
         if self.W is None:
-            self.W = np.random.rand(input_size, self.units)
+            self.W = np.zeros([input_size, self.units], dtype=float)
 
-        net = np.dot(X, self.W)
-        output = self.activation(net)
+        self.net = np.dot(self.input, self.W)
+        self.output = ACTIVATION_FUNCTIONS[self.activation](self.net)
+        return self.output
 
-        return output
+    def backward(self, X: np.ndarray, y: np.ndarray = None, next_layer: Layer = None) -> np.ndarray:
+        dE_dnet = None
+
+        if y is not None:
+            dE_do = -(y - X)
+            do_dnet = ACTIVATION_FUNCTIONS['d' + self.activation](X)
+            dE_dnet = dE_do * do_dnet
+        else:
+            dE_do = np.dot(X, next_layer.W.T)
+            do_dnet = ACTIVATION_FUNCTIONS['d' +
+                                           self.activation](next_layer.input)
+            dE_dnet = dE_do * do_dnet
+
+            if (self.bias is not None):
+                dE_dnet = dE_dnet[:, :-1]
+
+        # print(self.input.T.shape, dE_dnet.shape)
+        dE_dw = np.dot(self.input.T, dE_dnet)
+
+        return dE_dnet, dE_dw
 
 
 class Conv(Layer):
@@ -40,7 +68,8 @@ class Conv(Layer):
         self.filters = filters
         self.kernel_size = kernel_size
         # initialize random kernels
-        self.kernel = np.random.rand(kernel_size[0], kernel_size[1], filters)
+        self.kernel = np.zeros(
+            [kernel_size[0], kernel_size[1], filters], dtype=float)
         self.padding = padding
         self.stride = stride
         self.bias = bias
@@ -63,7 +92,7 @@ class Conv2D(Conv):
         k_height, k_width, k_channel = self.kernel.shape
         f_height = (x_height-k_height+2*self.padding) // self.stride[0] + 1
         f_width = (x_width-k_width+2*self.padding) // self.stride[1] + 1
-        feature_maps = np.zeros([f_height, f_width, self.filters], dtype=int)
+        feature_maps = np.zeros([f_height, f_width, self.filters], dtype=float)
 
         # Do convolution for every input channel to each filter channel
         for i in range(self.filters):

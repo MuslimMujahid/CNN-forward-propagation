@@ -205,7 +205,7 @@ class Pooling(Layer):
     def forward(self, X: np.ndarray) -> np.ndarray:
         pool_function = np.mean if self.mode == "avg" else np.max
         x_height, x_width, x_channel = X.shape
-        self.orig = X
+        self.orig = X.copy()
         output = np.zeros([(x_height-self.size) //
                           self.stride+1, (x_width-self.size)//self.stride+1, x_channel])
         o_height, o_width, _ = output.shape
@@ -231,7 +231,7 @@ class Pooling(Layer):
                         output[j*self.stride:(j*self.stride)+self.size,
                             k*self.stride:(k*self.stride)+self.size,
                             i] += X[j, k, i] * mask
-                    if self.mode == 'avg':
+                    elif self.mode == 'avg':
                         output[j*self.stride:(j*self.stride)+self.size,
                             k*self.stride:(k*self.stride)+self.size,
                             i] += (X[j, k, i])/self.size/self.size

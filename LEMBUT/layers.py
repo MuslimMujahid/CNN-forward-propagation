@@ -106,23 +106,29 @@ class Conv2D(Conv):
 
     def forward(self, X: np.ndarray) -> np.ndarray:
         # Create buffer for feature maps
-        x_height, x_width, x_channel = X.shape
+        n_sample, x_height, x_width, x_channel = X.shape
         k_height, k_width, k_channel = self.kernel.shape
         f_height = (x_height-k_height+2*self.padding) // self.stride[0] + 1
         f_width = (x_width-k_width+2*self.padding) // self.stride[1] + 1
-        feature_maps = np.zeros([f_height, f_width, self.filters], dtype=float)
 
-        # Do convolution for every input channel to each filter channel
-        for i in range(self.filters):
-            for j in range(x_channel):
-                feature_maps[:, :, j] = np.add(feature_maps[:, :, j], conv2D(
-                    X[:, :, j], self.kernel[:, :, i], self.padding, self.stride, self.bias))
-            feature_maps[:, :, i] += self.bias[i]
+        lst_feature_maps = []
+        for k in range(n_sample):
+            feature_maps = np.zeros(
+                [f_height, f_width, self.filters], dtype=float)
+            # Do convolution for every input channel to each filter channel
+            for i in range(self.filters):
+                for j in range(x_channel):
+                    feature_maps[:, :, j] = np.add(feature_maps[:, :, j], conv2D(
+                        X[k, :, :, j], self.kernel[:, :, i], self.padding, self.stride, self.bias))
+                feature_maps[:, :, i] += self.bias[i]
 
-        # Detector
-        feature_maps = self.activation(feature_maps)
+            # Detector
+            feature_maps = self.activation(feature_maps)
 
-        return feature_maps
+            # insert to list
+            lst_feature_maps.append(feature_maps)
+
+        return np.array(lst_feature_maps)
 
     def backward(self, X: np.ndarray, y: np.ndarray = None, next_layer: Layer = None):
         # legend
@@ -132,7 +138,7 @@ class Conv2D(Conv):
         pad = self.padding
 
         # print("X, prepad", X)
-        locX = np.pad(X, ((pad,pad), (pad,pad), (0,0)), 'constant')
+        locX = np.pad(X, ((pad, pad), (pad, pad), (0, 0)), 'constant')
         # print("X, postpad", X)
         print(locX.shape)
         stride = self.stride
@@ -155,8 +161,10 @@ class Conv2D(Conv):
                 current_x = output_x = 0
                 while current_x + k_width <= in_width:
                     # getting the receptive field of the input, multiplied with constant from output gradient
-                    print(current_x, current_x+k_height, current_y, current_y+k_width, (in_height, in_width), y.shape)
-                    mult_mat = locX[current_x:current_x+k_height, current_y:current_y+k_width, 0] * y[output_x, output_y, f]
+                    print(current_x, current_x+k_height, current_y,
+                          current_y+k_width, (in_height, in_width), y.shape)
+                    mult_mat = locX[current_x:current_x+k_height,
+                                    current_y:current_y+k_width, 0] * y[output_x, output_y, f]
                     # filter weight updated using the result from above
                     dfilt[:, :, f] += mult_mat
 
@@ -203,17 +211,23 @@ class Pooling(Layer):
 
     def pool(self, X: np.ndarray) -> np.ndarray:
         pool_function = np.mean if self.mode == "avg" else np.max
-        x_height, x_width, x_channel = X.shape
-        output = np.zeros([(x_height-self.size) //
-                          self.stride+1, (x_width-self.size)//self.stride+1, x_channel])
-        o_height, o_width, _ = output.shape
-        for i in range(x_channel):
-            for j in range(o_height):
-                for k in range(o_width):
-                    output[j, k, i] = pool_function(
-                        X[j*self.stride:j*self.stride+self.size, k*self.stride:k*self.stride+self.size, i])
+        n_sample, x_height, x_width, x_channel = X.shape
+        lst_outputs = []
 
-        return output
+        for m in range(n_sample):
+            output = np.zeros([(x_height-self.size) //
+                              self.stride+1, (x_width-self.size)//self.stride+1, x_channel])
+            o_height, o_width, _ = output.shape
+            for i in range(x_channel):
+                for j in range(o_height):
+                    for k in range(o_width):
+                        output[j, k, i] = pool_function(
+                            X[m, j*self.stride:j*self.stride+self.size, k*self.stride:k*self.stride+self.size, i])
+
+            # insert result
+            lst_outputs.append(output)
+
+        return np.array(lst_outputs)
 
 
 class Flatten(Layer):
@@ -227,4 +241,8 @@ class Flatten(Layer):
         return self.forward(X)
 
     def forward(self, X: np.ndarray) -> np.ndarray:
-        return X.flatten('F')
+        output = []
+        for i in range(X.shape[0]):
+            output.append(X[i, :, :, :].flatten('F'))
+
+        return np.array(output)

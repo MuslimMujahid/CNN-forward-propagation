@@ -24,9 +24,14 @@ class Sequential:
         return output
 
     def fit(self, X: np.ndarray, y: np.ndarray, epochs=1, learning_rate=0.5) -> np.ndarray:
+        layer_names = [l.__name__() for l in self.layers]
+        flatten_idx = layer_names.index('Flatten')
+
         n_layers = len(self.layers)
-        for i in range(epochs):
+        for _ in range(epochs):
+            # Backpropagation for fully connected layer
             lst_dE_dw = []
+            dE_dnet = None
 
             # Forward propagation
             yHat = self.predict(X)
@@ -35,16 +40,19 @@ class Sequential:
             dE_dnet, dE_dw = self.layers[-1].backward(
                 yHat, y)
             lst_dE_dw.insert(0, dE_dw)
-            if (n_layers > 1):
-                for i in range(n_layers-2, -1, -1):
+            if (n_layers-flatten_idx > 1):
+                for i in range(n_layers-2, flatten_idx, -1):
                     dE_dnet, dE_dw = self.layers[i].backward(
                         dE_dnet, next_layer=self.layers[i+1])
                     lst_dE_dw.insert(0, dE_dw)
 
             # Update weights
-            for idx, dE_dw in enumerate(lst_dE_dw):
+            for idx, dE_dw in enumerate(lst_dE_dw, flatten_idx + 1):
                 self.layers[idx].W -= (learning_rate * dE_dw)
-                # print(self.layers[idx].W)
+
+            # Backpropagation for convolutional layer
+            for i in range(flatten_idx-1, -1, -1):
+                backOut, weightOut = self.layers[i].backward(dE_dnet)
 
     def summary(self):
         table = []

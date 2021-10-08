@@ -110,7 +110,7 @@ class Conv2D(Conv):
         k_height, k_width, k_channel = self.kernel.shape
         f_height = (x_height-k_height+2*self.padding) // self.stride[0] + 1
         f_width = (x_width-k_width+2*self.padding) // self.stride[1] + 1
-
+        self.memory_input = X.copy()
         lst_feature_maps = []
         for k in range(n_sample):
             feature_maps = np.zeros(
@@ -130,20 +130,22 @@ class Conv2D(Conv):
 
         return np.array(lst_feature_maps)
 
-    def backward(self, X: np.ndarray, y: np.ndarray = None, next_layer: Layer = None):
+    def backward(self, y: np.ndarray = None, next_layer: Layer = None):
+        # print(y[0])
+        # print("end of y")
         # legend
         # x : input : X
         # y : output : not used
         # next_layer : layer in front of current layer
         pad = self.padding
-
+        X = self.memory_input
         # print("X, prepad", X)
         if pad > 0:
             locX = np.pad(X, ((0,0),(pad, pad), (pad, pad), (0, 0)), 'constant')
         else:
             locX = X
         # print("X, postpad", X)
-        print(locX.shape)
+        # print(locX.shape)
         stride = self.stride
         n_samples, in_width, in_height, _ = locX.shape
         stride_x, stride_y = self.stride
@@ -156,7 +158,8 @@ class Conv2D(Conv):
         # gradient loss of with respect to input (to be propagated to previous layer)
         dout = np.zeros(locX.shape)
         # print("dout shape", dout.shape)
-
+        # print("X shape", locX.shape)
+        # print("Y shape", y.shape)
         # loops through all filters
         for n in range(0, n_samples):
             for f in range(0, self.filters):
@@ -165,15 +168,14 @@ class Conv2D(Conv):
                     current_x = output_x = 0
                     while current_x + k_width <= in_width:
                         # getting the receptive field of the input, multiplied with constant from output gradient
-                        print(current_x, current_x+k_height, current_y,
-                            current_y+k_width, (in_height, in_width), y.shape)
-                        mult_mat = locX[n,current_x:current_x+k_height,
-                                        current_y:current_y+k_width, 0] * y[output_x, output_y, f]
+                        # print(current_x, current_x+k_height, current_y,
+                        #     current_y+k_width, (in_height, in_width), y.shape)
+                        mult_mat = locX[n,current_x:current_x+k_height, current_y:current_y+k_width, 0] * y[n, output_x, output_y, f]
                         # filter weight updated using the result from above
                         dfilt[:, :, f] += mult_mat
 
                         # multiply the current filter's kernel with constant from output gradient
-                        mult_mat = self.kernel[:, :, f] * y[output_x, output_y, f]
+                        mult_mat = self.kernel[:, :, f] * y[n, output_x, output_y, f]
                         # updating the loss gradient with respect to input
                         # this code kinda sus, need recheck
                         dout[n,current_x:current_x+k_height,
@@ -186,8 +188,8 @@ class Conv2D(Conv):
                     output_y += 1
                 # combine gradient biases based from the output gradient (kinda sus, recheck also)
                 # print(np.sum(y[:, :, f]))
-                print(y)
-                dbias[f] = np.sum(y[:, :, f])
+                # print(y)
+                dbias[f] = np.sum(y[n,:, :, f])
             # update bias for current layer
         self.bias += dbias * self.learning_rate
             # return output gradient with respect to input, and filter's loss gradient
@@ -199,6 +201,9 @@ class Conv2D(Conv):
             # print("Kernel after change")
         self.kernel += dfilt * self.learning_rate
         # print(self.kernel)
+        # print(dout.shape)
+        # print(dfilt.shape)
+        # print(dfilt)
         return dout, dfilt
 
 

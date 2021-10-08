@@ -1,5 +1,5 @@
 import numpy as np
-from .layers import Layer
+from .layers import Conv2D, Layer
 from tabulate import tabulate
 
 
@@ -61,6 +61,8 @@ class Sequential:
                 # backOut, weightOut = self.layers[i].backward(backOut)
                 if self.layers[i].has_weights:
                     backOut, weightOut = self.layers[i].backward(backOut)
+                elif backOut is not Conv2D:
+                    backOut = self.layers[i].backward(backOut)
                 else:
                     backOut = self.layers[i].backward(backOut)
 

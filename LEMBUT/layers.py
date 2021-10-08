@@ -138,11 +138,14 @@ class Conv2D(Conv):
         pad = self.padding
 
         # print("X, prepad", X)
-        locX = np.pad(X, ((pad, pad), (pad, pad), (0, 0)), 'constant')
+        if pad > 0:
+            locX = np.pad(X, ((pad, pad), (pad, pad), (0, 0)), 'constant')
+        else:
+            locX = X
         # print("X, postpad", X)
         print(locX.shape)
         stride = self.stride
-        in_width, in_height, _ = locX.shape
+        in_width, in_height = locX.shape
         stride_x, stride_y = self.stride
         k_height, k_width = self.kernel_size
 
@@ -181,6 +184,8 @@ class Conv2D(Conv):
                 current_y += stride_y
                 output_y += 1
             # combine gradient biases based from the output gradient (kinda sus, recheck also)
+            # print(np.sum(y[:, :, f]))
+            print(y)
             dbias[f] = np.sum(y[:, :, f])
         # update bias for current layer
         self.bias += dbias * self.learning_rate

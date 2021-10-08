@@ -42,7 +42,7 @@ class Sequential:
             lst_dE_dw.insert(0, dE_dw)
             if (n_layers-flatten_idx > 1):
                 for i in range(n_layers-2, flatten_idx, -1):
-                    print(self.layers[i].name)
+                    # print(self.layers[i].name)
                     dE_dnet, dE_dw = self.layers[i].backward(
                         dE_dnet, next_layer=self.layers[i+1])
                     lst_dE_dw.insert(0, dE_dw)
@@ -53,11 +53,10 @@ class Sequential:
             
             # Backpropagation for flatten layer
             # backOut = self.layers[flatten_idx].backward(dE_dnet)
-            print(np.array(lst_dE_dw).shape)
             # Backpropagation for convolutional layer
-            backOut = dE_dw
+            backOut = dE_dnet
             for i in range(flatten_idx, -1, -1):
-                print(self.layers[i].name)
+                # print(self.layers[i].name)
                 backOut, weightOut = self.layers[i].backward(backOut)
                 # if self.layers[i].has_weights:
                 #     backOut, weightOut = self.layers[i].backward(backOut)

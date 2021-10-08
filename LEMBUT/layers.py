@@ -4,14 +4,15 @@ from .util import conv2D
 
 
 class Layer:
-    def __init__(self, name: str, input_shape: tuple) -> None:
+    def __init__(self, name: str, input_shape: tuple, learning_rate: float = 0.01) -> None:
         self.name = name
         self.input_shape = input_shape
+        self.learning_rate = learning_rate
 
 
 class Dense(Layer):
-    def __init__(self, units: int, activation: str = "linear", name: str = "dense", input_shape: tuple = None, initial_weight: np.ndarray = None, bias=None) -> None:
-        super().__init__(name, input_shape)
+    def __init__(self, units: int, activation: str = "linear", name: str = "dense", input_shape: tuple = None, initial_weight: np.ndarray = None, bias=None, learning_rate: float = 0.01) -> None:
+        super().__init__(name, input_shape, learning_rate)
         self.activation = activation
         self.units = units
         self.W = initial_weight
@@ -71,8 +72,8 @@ class Dense(Layer):
 
 
 class Conv(Layer):
-    def __init__(self, filters: np.ndarray, name: str, kernel_size: tuple, activation: str, padding: int, stride: tuple, bias: int = 0, input_shape: tuple = None):
-        super().__init__(name, input_shape)
+    def __init__(self, filters: np.ndarray, name: str, kernel_size: tuple, activation: str, padding: int, stride: tuple, bias: int = 0, input_shape: tuple = None, learning_rate: float = 0.01):
+        super().__init__(name, input_shape, learning_rate)
         self.activation = ACTIVATION_FUNCTIONS[activation]
         self.filters = filters
         self.kernel_size = kernel_size
@@ -93,9 +94,9 @@ filter : describes how many filter
 
 
 class Conv2D(Conv):
-    def __init__(self, filters: int, name: str = "conv2d", kernel_size: tuple = (3, 3), activation: str = "relu", padding: int = 0, stride: tuple = (1, 1), bias: int = 0, input_shape: tuple = None):
+    def __init__(self, filters: int, name: str = "conv2d", kernel_size: tuple = (3, 3), activation: str = "relu", padding: int = 0, stride: tuple = (1, 1), bias: int = 0, input_shape: tuple = None, learning_rate: float = 0.01):
         super().__init__(filters, name, kernel_size,
-                         activation, padding, stride, bias, input_shape)
+                         activation, padding, stride, bias, input_shape, learning_rate)
 
     def __name__(self):
         return "Conv2D"
@@ -129,8 +130,13 @@ class Conv2D(Conv):
         # y : output : not used
         # next_layer : layer in front of current layer
         pad = self.padding
+
+        # print("X, prepad", X)
+        locX = np.pad(X, ((pad,pad), (pad,pad), (0,0)), 'constant')
+        # print("X, postpad", X)
+        print(locX.shape)
         stride = self.stride
-        in_width, in_height, _ = X.shape
+        in_width, in_height, _ = locX.shape
         stride_x, stride_y = self.stride
         k_height, k_width = self.kernel_size
 
@@ -139,7 +145,7 @@ class Conv2D(Conv):
         # gradient loss of the biases
         dbias = np.zeros((self.filters))
         # gradient loss of with respect to input (to be propagated to previous layer)
-        dout = np.zeros(X.shape)
+        dout = np.zeros(locX.shape)
         # print("dout shape", dout.shape)
 
         # loops through all filters
@@ -149,8 +155,8 @@ class Conv2D(Conv):
                 current_x = output_x = 0
                 while current_x + k_width <= in_width:
                     # getting the receptive field of the input, multiplied with constant from output gradient
-                    mult_mat = X[current_x:current_x+k_height,
-                                 current_y:current_y+k_width, 0] * y[output_x, output_y, f]
+                    print(current_x, current_x+k_height, current_y, current_y+k_width, (in_height, in_width), y.shape)
+                    mult_mat = locX[current_x:current_x+k_height, current_y:current_y+k_width, 0] * y[output_x, output_y, f]
                     # filter weight updated using the result from above
                     dfilt[:, :, f] += mult_mat
 
@@ -169,9 +175,16 @@ class Conv2D(Conv):
             # combine gradient biases based from the output gradient (kinda sus, recheck also)
             dbias[f] = np.sum(y[:, :, f])
         # update bias for current layer
-        self.bias += dbias
+        self.bias += dbias * self.learning_rate
         # return output gradient with respect to input, and filter's loss gradient
         # returned for information to previous layer's backpropagation
+        # print("Kernel shape", self.kernel.shape)
+        # print("Grad Kernel shape", dfilt.shape)
+        # print("Kernel before change")
+        # print(self.kernel)
+        # print("Kernel after change")
+        self.kernel += dfilt * self.learning_rate
+        # print(self.kernel)
         return dout, dfilt
 
 

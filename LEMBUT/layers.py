@@ -221,20 +221,20 @@ class Pooling(Layer):
         orig_height, orig_width, orig_channel = self.orig.shape
         x_height, x_width, x_channel = X.shape
         output = np.zeros([orig_height, orig_width, orig_channel])
-        for h in range(x_height):
-            for w in range(x_width):
-                for f in range(x_channel):
+        for j in range(x_height):
+            for k in range(x_width):
+                for i in range(x_channel):
                     if self.mode == 'max':
-                        tmp = self.orig[h*self.stride:self.size+(h*self.stride),
-                                    w*self.stride:self.size+(w*self.stride), f]
+                        tmp = self.orig[j*self.stride:self.size+(j*self.stride),
+                                    k*self.stride:self.size+(k*self.stride), i]
                         mask = (tmp == np.max(tmp))
-                        output[h*(self.stride):(h*(self.stride))+self.size,
-                            w*(self.stride):(w*(self.stride))+self.size,
-                            f] += X[h, w, f] * mask
+                        output[j*self.stride:(j*self.stride)+self.size,
+                            k*self.stride:(k*self.stride)+self.size,
+                            i] += X[j, k, i] * mask
                     if self.mode == 'avg':
-                        output[h*(self.stride):(h*(self.stride))+self.size,
-                            w*(self.stride):(w*(self.stride))+self.size,
-                            f] += (X[h, w, f])/self.size/self.size
+                        output[j*self.stride:(j*self.stride)+self.size,
+                            k*self.stride:(k*self.stride)+self.size,
+                            i] += (X[j, k, i])/self.size/self.size
         # if self.mode == "avg":
         #     for i in range(orig_channel):
         #         for j in range(orig_height):

@@ -170,16 +170,18 @@ class Pooling(Layer):
         self.size = size
         self.stride = stride
         self.mode = mode
+        self.orig = None
 
     def __name__(self):
         return "Pooling"
 
     def __call__(self, X: np.ndarray) -> np.ndarray:
-        return self.pool(X)
+        return self.forward(X)
 
-    def pool(self, X: np.ndarray) -> np.ndarray:
+    def forward(self, X: np.ndarray) -> np.ndarray:
         pool_function = np.mean if self.mode == "avg" else np.max
         x_height, x_width, x_channel = X.shape
+        self.orig = X
         output = np.zeros([(x_height-self.size) //
                           self.stride+1, (x_width-self.size)//self.stride+1, x_channel])
         o_height, o_width, _ = output.shape
@@ -189,6 +191,37 @@ class Pooling(Layer):
                     output[j, k, i] = pool_function(
                         X[j*self.stride:j*self.stride+self.size, k*self.stride:k*self.stride+self.size, i])
 
+        return output
+
+    def backward(self, X: np.ndarray) -> np.ndarray:
+        orig_height, orig_width, orig_channel = self.orig.shape
+        x_height, x_width, x_channel = X.shape
+        output = np.zeros([orig_height, orig_width, orig_channel])
+        for h in range(x_height):
+            for w in range(x_width):
+                for f in range(x_channel):
+                    if self.mode == 'max':
+                        tmp = self.orig[h*self.stride:self.size+(h*self.stride),
+                                    w*self.stride:self.size+(w*self.stride), f]
+                        mask = (tmp == np.max(tmp))
+                        output[h*(self.stride):(h*(self.stride))+self.size,
+                            w*(self.stride):(w*(self.stride))+self.size,
+                            f] += X[h, w, f] * mask
+                    if self.mode == 'avg':
+                        output[h*(self.stride):(h*(self.stride))+self.size,
+                            w*(self.stride):(w*(self.stride))+self.size,
+                            f] += (X[h, w, f])/self.size/self.size
+        # if self.mode == "avg":
+        #     for i in range(orig_channel):
+        #         for j in range(orig_height):
+        #             for k in range(orig_width):
+        #                 output[j, k, i] = X[j // self.stride, k // self.stride, i]
+        # else:
+        #     for i in range(x_channel):
+        #         for j in range(x_height):
+        #             for k in range(x_width):
+        #                 result = np.where(self.orig[j*self.stride:j*self.stride+self.size, k*self.stride:k*self.stride+self.size, i] == X[j, k, i])
+        #                 output[result[0], result[1], result[2]] = X[j, k, i]
         return output
 
 

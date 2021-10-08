@@ -77,6 +77,7 @@ class Conv(Layer):
         self.activation = ACTIVATION_FUNCTIONS[activation]
         self.filters = filters
         self.kernel_size = kernel_size
+        self.has_weights = True
         # initialize random kernels
         self.kernel = np.zeros(
             [kernel_size[0], kernel_size[1], filters], dtype=float)
@@ -88,8 +89,6 @@ class Conv(Layer):
 
 """ Convolutional 2D Layer
 filter : describes how many filter
-
-
 """
 
 
@@ -97,6 +96,7 @@ class Conv2D(Conv):
     def __init__(self, filters: int, name: str = "conv2d", kernel_size: tuple = (3, 3), activation: str = "relu", padding: int = 0, stride: tuple = (1, 1), bias: int = 0, input_shape: tuple = None, learning_rate: float = 0.01):
         super().__init__(filters, name, kernel_size,
                          activation, padding, stride, bias, input_shape, learning_rate)
+        self.has_weights = True
 
     def __name__(self):
         return "Conv2D"
@@ -209,6 +209,7 @@ class Pooling(Layer):
         self.stride = stride
         self.mode = mode
         self.orig = None
+        self.has_weights = False
 
     def __name__(self):
         return "Pooling"
@@ -238,6 +239,7 @@ class Pooling(Layer):
 
     def backward(self, X: np.ndarray) -> np.ndarray:
         orig_samples, orig_height, orig_width, orig_channel = self.orig.shape
+        # print(X.shape)
         n_sample, x_height, x_width, x_channel = X.shape
         output = np.zeros([orig_samples, orig_height, orig_width, orig_channel])
         for l in range(n_sample):
@@ -273,6 +275,7 @@ class Flatten(Layer):
     def __init__(self, name: str = "flatten", input_shape: tuple = None) -> None:
         super().__init__(name, input_shape)
         self.orig_shape = None
+        self.has_weights = False
 
     def __name__(self):
         return "Flatten"
@@ -290,7 +293,8 @@ class Flatten(Layer):
         return np.array(output)
 
     def backward(self, X: np.ndarray) -> np.ndarray:
-        # print(X.shape)
+        # print("Original shape: ")
+        # print(self.orig_shape)
         return X.reshape(self.orig_shape)
         # output = []
         # for i in range(X.shape[0]):

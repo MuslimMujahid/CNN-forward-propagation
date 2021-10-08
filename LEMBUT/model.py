@@ -58,11 +58,11 @@ class Sequential:
             backOut = dE_dnet
             for i in range(flatten_idx, -1, -1):
                 # print(self.layers[i].name)
-                backOut, weightOut = self.layers[i].backward(backOut)
-                # if self.layers[i].has_weights:
-                #     backOut, weightOut = self.layers[i].backward(backOut)
-                # else:
-                #     backOut = self.layers[i].backward(backOut)
+                # backOut, weightOut = self.layers[i].backward(backOut)
+                if self.layers[i].has_weights:
+                    backOut, weightOut = self.layers[i].backward(backOut)
+                else:
+                    backOut = self.layers[i].backward(backOut)
 
     def summary(self):
         table = []

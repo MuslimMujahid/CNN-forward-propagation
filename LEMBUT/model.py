@@ -42,6 +42,7 @@ class Sequential:
             lst_dE_dw.insert(0, dE_dw)
             if (n_layers-flatten_idx > 1):
                 for i in range(n_layers-2, flatten_idx, -1):
+                    print(self.layers[i].name)
                     dE_dnet, dE_dw = self.layers[i].backward(
                         dE_dnet, next_layer=self.layers[i+1])
                     lst_dE_dw.insert(0, dE_dw)
@@ -49,10 +50,19 @@ class Sequential:
             # Update weights
             for idx, dE_dw in enumerate(lst_dE_dw, flatten_idx + 1):
                 self.layers[idx].W -= (learning_rate * dE_dw)
-
+            
+            # Backpropagation for flatten layer
+            # backOut = self.layers[flatten_idx].backward(dE_dnet)
+            print(np.array(lst_dE_dw).shape)
             # Backpropagation for convolutional layer
-            for i in range(flatten_idx-1, -1, -1):
-                backOut, weightOut = self.layers[i].backward(dE_dnet)
+            backOut = dE_dw
+            for i in range(flatten_idx, -1, -1):
+                print(self.layers[i].name)
+                backOut, weightOut = self.layers[i].backward(backOut)
+                # if self.layers[i].has_weights:
+                #     backOut, weightOut = self.layers[i].backward(backOut)
+                # else:
+                #     backOut = self.layers[i].backward(backOut)
 
     def summary(self):
         table = []

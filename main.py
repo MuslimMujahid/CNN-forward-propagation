@@ -82,7 +82,9 @@ for train_index, test_index in k_fold.split(X):
 
     # print(X_train.shape, y_train.shape, X_test.shape, y_test.shape)
 
+    print("Begin fitting....")
     model.fit(X_train, y_train)
+    print("Finished fitting.")
     prediction = model.predict(X_test)
 
     prediction_label = []

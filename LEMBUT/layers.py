@@ -267,6 +267,7 @@ class Pooling(Layer):
 class Flatten(Layer):
     def __init__(self, name: str = "flatten", input_shape: tuple = None) -> None:
         super().__init__(name, input_shape)
+        self.orig_shape = None
 
     def __name__(self):
         return "Flatten"
@@ -276,7 +277,15 @@ class Flatten(Layer):
 
     def forward(self, X: np.ndarray) -> np.ndarray:
         output = []
+        self.orig_shape = X.shape
         for i in range(X.shape[0]):
             output.append(X[i, :, :, :].flatten('F'))
-
         return np.array(output)
+
+    def backward(self, X: np.ndarray) -> np.ndarray:
+        # print(X.shape)
+        return X.reshape(self.orig_shape)
+        # output = []
+        # for i in range(X.shape[0]):
+        #     output.append(X[i, :].reshape((self.orig_shape[1],self.orig_shape[2],self.orig_shape[3])))
+        # return np.array(output)

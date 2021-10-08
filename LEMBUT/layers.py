@@ -139,13 +139,13 @@ class Conv2D(Conv):
 
         # print("X, prepad", X)
         if pad > 0:
-            locX = np.pad(X, ((pad, pad), (pad, pad), (0, 0)), 'constant')
+            locX = np.pad(X, ((0,0),(pad, pad), (pad, pad), (0, 0)), 'constant')
         else:
             locX = X
         # print("X, postpad", X)
         print(locX.shape)
         stride = self.stride
-        in_width, in_height = locX.shape
+        n_samples, in_width, in_height, _ = locX.shape
         stride_x, stride_y = self.stride
         k_height, k_width = self.kernel_size
 
@@ -158,44 +158,45 @@ class Conv2D(Conv):
         # print("dout shape", dout.shape)
 
         # loops through all filters
-        for f in range(0, self.filters):
-            current_y = output_y = 0
-            while current_y + k_height <= in_height:
-                current_x = output_x = 0
-                while current_x + k_width <= in_width:
-                    # getting the receptive field of the input, multiplied with constant from output gradient
-                    print(current_x, current_x+k_height, current_y,
-                          current_y+k_width, (in_height, in_width), y.shape)
-                    mult_mat = locX[current_x:current_x+k_height,
-                                    current_y:current_y+k_width, 0] * y[output_x, output_y, f]
-                    # filter weight updated using the result from above
-                    dfilt[:, :, f] += mult_mat
+        for n in range(0, n_samples):
+            for f in range(0, self.filters):
+                current_y = output_y = 0
+                while current_y + k_height <= in_height:
+                    current_x = output_x = 0
+                    while current_x + k_width <= in_width:
+                        # getting the receptive field of the input, multiplied with constant from output gradient
+                        print(current_x, current_x+k_height, current_y,
+                            current_y+k_width, (in_height, in_width), y.shape)
+                        mult_mat = locX[n,current_x:current_x+k_height,
+                                        current_y:current_y+k_width, 0] * y[output_x, output_y, f]
+                        # filter weight updated using the result from above
+                        dfilt[:, :, f] += mult_mat
 
-                    # multiply the current filter's kernel with constant from output gradient
-                    mult_mat = self.kernel[:, :, f] * y[output_x, output_y, f]
-                    # updating the loss gradient with respect to input
-                    # this code kinda sus, need recheck
-                    dout[current_x:current_x+k_height,
-                         current_y:current_y+k_width, 0] += mult_mat
+                        # multiply the current filter's kernel with constant from output gradient
+                        mult_mat = self.kernel[:, :, f] * y[output_x, output_y, f]
+                        # updating the loss gradient with respect to input
+                        # this code kinda sus, need recheck
+                        dout[n,current_x:current_x+k_height,
+                            current_y:current_y+k_width, 0] += mult_mat
 
-                    # increment iterator
-                    current_x += stride_x
-                    output_x += 1
-                current_y += stride_y
-                output_y += 1
-            # combine gradient biases based from the output gradient (kinda sus, recheck also)
-            # print(np.sum(y[:, :, f]))
-            print(y)
-            dbias[f] = np.sum(y[:, :, f])
-        # update bias for current layer
+                        # increment iterator
+                        current_x += stride_x
+                        output_x += 1
+                    current_y += stride_y
+                    output_y += 1
+                # combine gradient biases based from the output gradient (kinda sus, recheck also)
+                # print(np.sum(y[:, :, f]))
+                print(y)
+                dbias[f] = np.sum(y[:, :, f])
+            # update bias for current layer
         self.bias += dbias * self.learning_rate
-        # return output gradient with respect to input, and filter's loss gradient
-        # returned for information to previous layer's backpropagation
-        # print("Kernel shape", self.kernel.shape)
-        # print("Grad Kernel shape", dfilt.shape)
-        # print("Kernel before change")
-        # print(self.kernel)
-        # print("Kernel after change")
+            # return output gradient with respect to input, and filter's loss gradient
+            # returned for information to previous layer's backpropagation
+            # print("Kernel shape", self.kernel.shape)
+            # print("Grad Kernel shape", dfilt.shape)
+            # print("Kernel before change")
+            # print(self.kernel)
+            # print("Kernel after change")
         self.kernel += dfilt * self.learning_rate
         # print(self.kernel)
         return dout, dfilt
@@ -233,7 +234,6 @@ class Pooling(Layer):
 
             # insert result
             lst_outputs.append(output)
-
         return np.array(lst_outputs)
 
     def backward(self, X: np.ndarray) -> np.ndarray:
@@ -272,6 +272,7 @@ class Pooling(Layer):
 class Flatten(Layer):
     def __init__(self, name: str = "flatten", input_shape: tuple = None) -> None:
         super().__init__(name, input_shape)
+        self.orig_shape = None
 
     def __name__(self):
         return "Flatten"
@@ -280,8 +281,18 @@ class Flatten(Layer):
         return self.forward(X)
 
     def forward(self, X: np.ndarray) -> np.ndarray:
+        print("Flatten shape: ", X.shape)
         output = []
+        self.orig_shape = X.shape
         for i in range(X.shape[0]):
             output.append(X[i, :, :, :].flatten('F'))
-
+        print("Flatten output size: ",np.array(output).shape)
         return np.array(output)
+
+    def backward(self, X: np.ndarray) -> np.ndarray:
+        # print(X.shape)
+        return X.reshape(self.orig_shape)
+        # output = []
+        # for i in range(X.shape[0]):
+        #     output.append(X[i, :].reshape((self.orig_shape[1],self.orig_shape[2],self.orig_shape[3])))
+        # return np.array(output)

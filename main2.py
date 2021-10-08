@@ -27,7 +27,7 @@ model.add(layers.Pooling(name="pooling_2"))
 model.add(layers.Flatten())
 
 # Fully connected layer
-model.add(layers.Dense(name="dense_1", units=120, activation="relu"))
+model.add(layers.Dense(name="dense_1", units=256, activation="relu"))
 model.add(layers.Dense(name="dense_2", units=84, activation="relu"))
 model.add(layers.Dense(name="dense_3", units=3, activation="softmax"))
 

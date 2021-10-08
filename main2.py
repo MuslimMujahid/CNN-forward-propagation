@@ -21,9 +21,9 @@ model = Sequential()
 # Convolutional layer
 model.add(layers.Conv2D(name="conv_1", filters=3,
           kernel_size=(5, 5), input_shape=(28, 28, 3)))
-# model.add(layers.Pooling(name="pooling_1"))
-# model.add(layers.Conv2D(name="conv_2", filters=16, kernel_size=(5, 5)))
-# model.add(layers.Pooling(name="pooling_2"))
+model.add(layers.Pooling(name="pooling_1"))
+model.add(layers.Conv2D(name="conv_2", filters=16, kernel_size=(5, 5)))
+model.add(layers.Pooling(name="pooling_2"))
 model.add(layers.Flatten())
 
 # Fully connected layer

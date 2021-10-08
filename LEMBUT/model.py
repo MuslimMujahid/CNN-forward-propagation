@@ -49,7 +49,7 @@ class Sequential:
             # Update weights
             for idx, dE_dw in enumerate(lst_dE_dw, flatten_idx + 1):
                 self.layers[idx].W -= (learning_rate * dE_dw)
-
+            print("dE_dnet shape: ", dE_dnet.shape)
             # Backpropagation for convolutional layer
             for i in range(flatten_idx-1, -1, -1):
                 backOut, weightOut = self.layers[i].backward(dE_dnet)

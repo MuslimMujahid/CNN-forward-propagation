@@ -24,9 +24,9 @@ if option == "2":
     model.add(layers.Pooling(name="pooling_2"))
     model.add(layers.Flatten())
     # Fully connected layer
-    # model.add(layers.Dense(name="dense_1", units=120, activation="relu"))
-    # model.add(layers.Dense(name="dense_2", units=84, activation="relu"))
-    # model.add(layers.Dense(name="dense_3", units=10, activation="softmax"))
+    model.add(layers.Dense(name="dense_1", units=120, activation="relu"))
+    model.add(layers.Dense(name="dense_2", units=84, activation="relu"))
+    model.add(layers.Dense(name="dense_3", units=10, activation="softmax"))
 
     # model.add(layers.Dense(name="dense_1", units=2, activation="sigmoid",
     #           initial_weight=np.reshape([0.15, 0.25, 0.2, 0.3, 0.35, 0.35], (3, 2)), bias=1, input_shape=(2, )))

@@ -6,10 +6,15 @@ import cv2
 from LEMBUT import util
 from keras.datasets import mnist
 from LEMBUT.util import *
-from keras.datasets import mnist
+from sklearn.model_selection import train_test_split, KFold
 
 
 (trainX, trainY), (testX, testY) = mnist.load_data()
+
+# Split Dataset into 90% Train 10% Test
+X = np.concatenate([trainX, testX])
+y = np.concatenate([trainY, testY])
+trainX, trainY, testX, testY = train_test_split(X, y, test_size=0.1)
 
 model = Sequential()
 
@@ -51,8 +56,6 @@ model.summary()
 
 # model.summary()
 
-
-
 # Train
 model.fit(
     # np.reshape([0.05, 0.1], (1, 2)),
@@ -61,3 +64,35 @@ model.fit(
     epochs=1
 )
 print(model(np.reshape([0.05, 0.1], (1, 2))))
+
+# 10 Fold Cross Validation
+k_fold = KFold(n_splits=10)
+
+for train_index, test_index in k_fold.split(X):
+  X_train, X_test = X[train_index], X[test_index]
+  y_train, y_test = y[train_index], y[test_index]
+
+  model.fit(X_train, y_train)
+  prediction = model.predict(X_test)
+
+  prediction_label = []
+  for i in range(prediction.shape[1]):
+    prediction_label.append(np.argmax(prediction[:, i]))
+
+  y_test_label = []
+  for i in range(y_test.shape[0]):
+    y_test_label.append(np.argmax(y_test[i, :]))
+
+  print("Prediction")
+  print(prediction_label)
+  print("Comparison")
+  print(y_test_label)
+  print("Confusion Matrix: ")
+  print(confusion_matrix(y_test_label, prediction_label))
+  print("Precision:")
+  precision_result(y_test_label, prediction_label)
+  print("Recall:")
+  recall_result(y_test_label, prediction_label)
+  print("F1:")
+  f1_result(y_test_label, prediction_label)
+  print("Accuracy : " + str(acc_result(y_test_label, prediction_label)))

@@ -49,10 +49,11 @@ filter = np.array([
 
 # print(in_mat.shape)
 
-conv_layer = layers.Conv2D(name="conv_1", filters=2, kernel_size=(2, 2), input_shape=(4, 4, 1))
+conv_layer = layers.Conv2D(name="conv_1", filters=2, kernel_size=(2, 2), input_shape=(4, 4, 1), padding=1, stride=(2,2))
 out = conv_layer.forward(in_mat)
 # out = conv_layer.zero_pad(in_mat, 0)
 # print(out)
 # print(out.shape)
-backOut = conv_layer.backward(in_mat, dOut2)
-# print(backOut)
+backOut, weightOut = conv_layer.backward(in_mat, dOut2)
+print(backOut)
+print(weightOut)

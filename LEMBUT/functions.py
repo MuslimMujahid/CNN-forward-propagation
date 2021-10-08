@@ -18,17 +18,23 @@ def softmax(x):
     return e_x / e_x.sum(axis=0)
 
 
-# def dsigmoid(x):
-#     return sigmoid(x) * (1 - sigmoid(x))
 def dsigmoid(x):
     return x * (1 - x)
+
+
+def dsoftmax(x):
+    e_xi = np.exp(x)
+    sum_ex = np.sum(x)
+    return e_xi * (sum_ex - e_xi) / (sum_ex ** 2)
 
 
 def drelu(x):
     return (x > 0) * 1.0
 
+
 def dlinear(x):
-  return x
+    return 1
+
 
 ACTIVATION_FUNCTIONS = {
     "linear": linear,
@@ -37,5 +43,6 @@ ACTIVATION_FUNCTIONS = {
     "softmax": softmax,
     "dsigmoid": dsigmoid,
     "drelu": drelu,
-    "dlinear": dlinear
+    "dlinear": dlinear,
+    "dsoftmax": dsoftmax
 }

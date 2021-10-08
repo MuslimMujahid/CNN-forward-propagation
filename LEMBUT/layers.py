@@ -232,23 +232,24 @@ class Pooling(Layer):
         return np.array(lst_outputs)
 
     def backward(self, X: np.ndarray) -> np.ndarray:
-        orig_height, orig_width, orig_channel = self.orig.shape
-        x_height, x_width, x_channel = X.shape
-        output = np.zeros([orig_height, orig_width, orig_channel])
-        for j in range(x_height):
-            for k in range(x_width):
-                for i in range(x_channel):
-                    if self.mode == 'max':
-                        tmp = self.orig[j*self.stride:self.size+(j*self.stride),
-                                        k*self.stride:self.size+(k*self.stride), i]
-                        mask = (tmp == np.max(tmp))
-                        output[j*self.stride:(j*self.stride)+self.size,
-                               k*self.stride:(k*self.stride)+self.size,
-                               i] += X[j, k, i] * mask
-                    elif self.mode == 'avg':
-                        output[j*self.stride:(j*self.stride)+self.size,
-                               k*self.stride:(k*self.stride)+self.size,
-                               i] += (X[j, k, i])/self.size/self.size
+        orig_samples, orig_height, orig_width, orig_channel = self.orig.shape
+        n_sample, x_height, x_width, x_channel = X.shape
+        output = np.zeros([orig_samples, orig_height, orig_width, orig_channel])
+        for l in range(n_sample):
+            for j in range(x_height):
+                for k in range(x_width):
+                    for i in range(x_channel):
+                        if self.mode == 'max':
+                            tmp = self.orig[l, j*self.stride:self.size+(j*self.stride),
+                                            k*self.stride:self.size+(k*self.stride), i]
+                            mask = (tmp == np.max(tmp))
+                            output[l, j*self.stride:(j*self.stride)+self.size,
+                                k*self.stride:(k*self.stride)+self.size,
+                                i] += X[l, j, k, i] * mask
+                        elif self.mode == 'avg':
+                            output[l, j*self.stride:(j*self.stride)+self.size,
+                                k*self.stride:(k*self.stride)+self.size,
+                                i] += (X[l, j, k, i])/self.size/self.size
         # if self.mode == "avg":
         #     for i in range(orig_channel):
         #         for j in range(orig_height):
